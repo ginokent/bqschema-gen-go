@@ -47,7 +47,7 @@ func main() {
 	mainCtx := context.Background()
 
 	if err := run(mainCtx); err != nil {
-		log.Fatalf("%s: %w\n", FuncNameWithFileInfo(), err)
+		log.Fatalf("%s: %v\n", caller(), err)
 	}
 }
 
@@ -60,19 +60,19 @@ func run(mainCtx context.Context) error {
 	// NOTE(djeeno): if passed -keyfile,
 	if vOptKeyFile != "" {
 		if err := os.Setenv(envNameGoogleApplicationCredentials, vOptKeyFile); err != nil {
-			log.Fatalf("%s: %w\n", FuncNameWithFileInfo(), err)
+			return fmt.Errorf("%s: %w", caller(), err)
 		}
 	}
 
 	envKeyFile := os.Getenv(envNameGoogleApplicationCredentials)
 
 	if envKeyFile == "" {
-		log.Fatalf("%s: set environment variable %s, or set option -%s", FuncNameWithFileInfo(), envNameGoogleApplicationCredentials, optNameKeyFile)
+		return fmt.Errorf("%s: set environment variable %s, or set option -%s", caller(), envNameGoogleApplicationCredentials, optNameKeyFile)
 	}
 
 	cred, err := newGoogleApplicationCredentials(envKeyFile)
 	if err != nil {
-		log.Fatalf("%s: %w\n", FuncNameWithFileInfo(), err)
+		return fmt.Errorf("%s: %w", caller(), err)
 	}
 
 	var projectID string
@@ -85,11 +85,11 @@ func run(mainCtx context.Context) error {
 	c, err := bigquery.NewClient(mainCtx, projectID)
 	defer func() {
 		if err := c.Close(); err != nil {
-			log.Fatalf("%s: %v\n", FuncNameWithFileInfo(), err)
+			log.Printf("%s: %v\n", caller(), err)
 		}
 	}()
 	if err != nil {
-		log.Fatalf("%s: %v\n\n", FuncNameWithFileInfo(), err)
+		return fmt.Errorf("%s: %w", caller(), err)
 	}
 
 	_ = c
@@ -113,17 +113,17 @@ type googleApplicationCredentials struct {
 func newGoogleApplicationCredentials(path string) (*googleApplicationCredentials, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", FuncNameWithFileInfo(), err)
+		return nil, fmt.Errorf("%s: %w", caller(), err)
 	}
 
 	bytea, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", FuncNameWithFileInfo(), err)
+		return nil, fmt.Errorf("%s: %w", caller(), err)
 	}
 
 	cred := googleApplicationCredentials{}
 	if err := json.Unmarshal(bytea, &cred); err != nil {
-		return nil, fmt.Errorf("getGoogleProject: %w", err)
+		return nil, fmt.Errorf("%s: %w", caller(), err)
 	}
 
 	return &cred, nil
@@ -136,7 +136,7 @@ func ResolveEnvs(keys ...string) (map[string]string, error) {
 	for _, key := range keys {
 		envs[key] = os.Getenv(key)
 		if envs[key] == "" {
-			return nil, fmt.Errorf("%s: environment variable %s is empty", FuncNameWithFileInfo(), key)
+			return nil, fmt.Errorf("%s: environment variable %s is empty", caller(), key)
 		}
 	}
 
@@ -164,7 +164,7 @@ func FuncName() string {
 	return runtime.FuncForPC(pc).Name()
 }
 
-func FuncNameWithFileInfo() string {
+func caller() string {
 	pc, file, line, ok := runtime.Caller(1)
 	if !ok {
 		return fmt.Sprintf("%s[%s:%d]", "null", "null", 0)
