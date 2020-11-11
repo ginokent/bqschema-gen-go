@@ -93,6 +93,8 @@ func run(mainCtx context.Context) error {
 	}
 
 	_ = c
+
+	return nil
 }
 
 type googleApplicationCredentials struct {
