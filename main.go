@@ -1,29 +1,38 @@
 package main
 
 import (
+	"cloud.google.com/go/bigquery"
 	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
-
-	"cloud.google.com/go/bigquery"
+	"path/filepath"
+	"runtime"
 )
 
 const (
-	optionNameKeyFile                   = "keyfile"
+	optNameProjectID                    = "project"
+	optNameDataset                      = "dataset"
+	optNameKeyFile                      = "keyfile"
+	optNameOutputPath                   = "output"
 	envNameGoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 )
 
 var (
-	vKeyFile string
-	vPath    string
+	vOptProjectID  string
+	vOptDataset    string
+	vOptKeyFile    string
+	vOptOutputPath string
 )
 
 func init() {
-	flag.StringVar(&vKeyFile, optionNameKeyFile, "", "path to service account json key file")
-	flag.StringVar(&vPath, "path", "", "path to output the generated code")
+	flag.StringVar(&vOptProjectID, optNameProjectID, "", "")
+	flag.StringVar(&vOptDataset, optNameDataset, "", "")
+	flag.StringVar(&vOptKeyFile, optNameKeyFile, "", "path to service account json key file")
+	flag.StringVar(&vOptOutputPath, optNameOutputPath, "", "path to output the generated code")
 	flag.Parse()
 }
 
@@ -38,10 +47,26 @@ package bqtableschema
 func main() {
 	ctx := context.Background()
 
+	// output 1
 	fmt.Printf("%s\n", goFileContentHeader)
 
-	c, err := bigquery.NewClient(ctx, "", nil)
-	_, _ = c, err
+	projectID, err := getGoogleProject()
+	if err != nil {
+		log.Panicf("%s: %w\n", FuncName(), err)
+	}
+
+	c, err := bigquery.NewClient(ctx, projectID)
+	defer func() {
+		if err := c.Close(); err != nil {
+			log.Panicf("%s: %w", FuncName(), err)
+		}
+	}()
+	if err != nil {
+		log.Panicf("%s: %w\n", FuncName(), err)
+	}
+
+	_ = c
+
 }
 
 type googleApplicationCredentials struct {
@@ -58,14 +83,17 @@ type googleApplicationCredentials struct {
 }
 
 func getGoogleProject() (string, error) {
-
 	path := os.Getenv(envNameGoogleApplicationCredentials)
 
 	switch {
+	case vOptProjectID != "":
+		return vOptProjectID, nil
 	case path != "":
 		return getGoogleProjectByGoogleApplicationCredentials(path)
+	case vOptOutputPath != "":
+		return getGoogleProjectByGoogleApplicationCredentials(vOptOutputPath)
 	default:
-		return "", fmt.Errorf("getGoogleProject: set option")
+		return "", fmt.Errorf("%s: set option -%s, or set environment variable %s", FuncName(), optNameKeyFile, envNameGoogleApplicationCredentials)
 	}
 
 }
@@ -73,7 +101,7 @@ func getGoogleProject() (string, error) {
 func getGoogleProjectByGoogleApplicationCredentials(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return "", fmt.Errorf("getGoogleProject: %w", err)
+		return "", fmt.Errorf("%s: %w", FuncName(), err)
 	}
 
 	content, err := ioutil.ReadAll(file)
@@ -96,9 +124,69 @@ func ResolveEnvs(keys ...string) (map[string]string, error) {
 	for _, key := range keys {
 		envs[key] = os.Getenv(key)
 		if envs[key] == "" {
-			return nil, fmt.Errorf("environment variable %s is empty", key)
+			return nil, fmt.Errorf("%s: environment variable %s is empty", FuncName(), key)
 		}
 	}
 
 	return envs, nil
+}
+
+// MergeMap merge map[string]string
+func MergeMap(sideToBeMerged, sideToMerge map[string]string) map[string]string {
+	m := map[string]string{}
+
+	for k, v := range sideToBeMerged {
+		m[k] = v
+	}
+	for k, v := range sideToMerge {
+		m[k] = v
+	}
+	return (m)
+}
+
+type caller struct {
+	initialized bool
+	pc          uintptr
+	file        string
+	line        int
+}
+
+func (c *caller) PC() uintptr {
+	if !c.initialized {
+		runtime.Caller(1)
+	}
+	if c == nil {
+		return 0
+	}
+	return c.pc
+}
+
+func (c *caller) File() string {
+	if c == nil {
+		return "unknown"
+	}
+	return c.file
+}
+
+func (c *caller) Line() int {
+	if c == nil {
+		return 0
+	}
+	return c.line
+}
+
+func FuncName() string {
+	pc, _, _, ok := runtime.Caller(1)
+	if !ok {
+		return ""
+	}
+	return runtime.FuncForPC(pc).Name()
+}
+
+func FuncNameWithFileInfo() string {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf("%s:%d:%s", filepath.Base(file), line, runtime.FuncForPC(pc).Name())
 }
