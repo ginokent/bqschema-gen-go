@@ -1,5 +1,3 @@
-//go:generate go run main.go
-
 package main
 
 import (
@@ -94,7 +92,7 @@ func getGoogleProject() (string, error) {
 	case vOptOutputPath != "":
 		return getGoogleProjectByGoogleApplicationCredentials(vOptOutputPath)
 	default:
-		return "", fmt.Errorf("%s: set option -%s, or set environment variable %s", FuncNameWithFileInfo(), optNameKeyFile, envNameGoogleApplicationCredentials)
+		return "", fmt.Errorf("%s: set environment variable %s, or set option -%s", FuncNameWithFileInfo(), optNameKeyFile, envNameGoogleApplicationCredentials)
 	}
 
 }
@@ -145,37 +143,6 @@ func MergeMap(sideToBeMerged, sideToMerge map[string]string) map[string]string {
 	return (m)
 }
 
-type caller struct {
-	initialized bool
-	pc          uintptr
-	file        string
-	line        int
-}
-
-func (c *caller) PC() uintptr {
-	if !c.initialized {
-		runtime.Caller(1)
-	}
-	if c == nil {
-		return 0
-	}
-	return c.pc
-}
-
-func (c *caller) File() string {
-	if c == nil {
-		return "unknown"
-	}
-	return c.file
-}
-
-func (c *caller) Line() int {
-	if c == nil {
-		return 0
-	}
-	return c.line
-}
-
 func FuncName() string {
 	pc, _, _, ok := runtime.Caller(1)
 	if !ok {
@@ -187,7 +154,7 @@ func FuncName() string {
 func FuncNameWithFileInfo() string {
 	pc, file, line, ok := runtime.Caller(1)
 	if !ok {
-		return ""
+		return fmt.Sprintf("%s[%s:%d]", "null", "null", 0)
 	}
 	return fmt.Sprintf("%s[%s:%d]", runtime.FuncForPC(pc).Name(), filepath.Base(file), line)
 }
