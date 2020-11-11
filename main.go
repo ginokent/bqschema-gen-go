@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"google.golang.org/api/iterator"
 	"io/ioutil"
 	"log"
 	"os"
@@ -44,16 +45,16 @@ package bqtableschema
 )
 
 func main() {
-	mainCtx := context.Background()
+	ctx := context.Background()
 
-	if err := run(mainCtx); err != nil {
+	if err := run(ctx); err != nil {
 		log.Fatalf("%s: %v\n", caller(), err)
 	}
 }
 
 // run is effectively a `main` function.
 // It is separated from the `main` function because of addressing an issue where` defer` is not executed when `os.Exit` is executed.
-func run(mainCtx context.Context) error {
+func run(ctx context.Context) error {
 	// NOTE(djeeno): output 1
 	fmt.Printf("%s\n", generatedContentHeader)
 
@@ -82,17 +83,32 @@ func run(mainCtx context.Context) error {
 		projectID = cred.ProjectID
 	}
 
-	c, err := bigquery.NewClient(mainCtx, projectID)
+	c, err := bigquery.NewClient(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", caller(), err)
+	}
 	defer func() {
 		if err := c.Close(); err != nil {
 			log.Printf("%s: %v\n", caller(), err)
 		}
 	}()
-	if err != nil {
-		return fmt.Errorf("%s: %w", caller(), err)
+
+	var tables []string
+	tableIterator := c.Dataset(vOptDataset).Tables(ctx)
+	for {
+		table, err := tableIterator.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return fmt.Errorf("%s: %w", caller(), err)
+		}
+		tables = append(tables, table.TableID)
 	}
 
-	_ = c
+	for _, table := range tables {
+		fmt.Printf("type %s struct {}\n", table)
+	}
 
 	return nil
 }
