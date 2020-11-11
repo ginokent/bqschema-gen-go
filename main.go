@@ -44,28 +44,55 @@ package bqtableschema
 )
 
 func main() {
-	ctx := context.Background()
+	mainCtx := context.Background()
 
-	// output 1
+	if err := run(mainCtx); err != nil {
+		log.Fatalf("%s: %w\n", FuncNameWithFileInfo(), err)
+	}
+}
+
+// run is effectively a `main` function.
+// It is separated from the `main` function because of addressing an issue where` defer` is not executed when `os.Exit` is executed.
+func run(mainCtx context.Context) error {
+	// NOTE(djeeno): output 1
 	fmt.Printf("%s\n", goFileContentHeader)
 
-	projectID, err := getGoogleProject()
-	if err != nil {
-		log.Fatalf("%s: %v\n", FuncNameWithFileInfo(), err)
+	// NOTE(djeeno): if passed -keyfile,
+	if vOptKeyFile != "" {
+		if err := os.Setenv(envNameGoogleApplicationCredentials, vOptKeyFile); err != nil {
+			log.Fatalf("%s: %w\n", FuncNameWithFileInfo(), err)
+		}
 	}
 
-	c, err := bigquery.NewClient(ctx, projectID)
+	envKeyFile := os.Getenv(envNameGoogleApplicationCredentials)
+
+	if envKeyFile == "" {
+		log.Fatalf("%s: set environment variable %s, or set option -%s", FuncNameWithFileInfo(), envNameGoogleApplicationCredentials, optNameKeyFile)
+	}
+
+	cred, err := newGoogleApplicationCredentials(envKeyFile)
+	if err != nil {
+		log.Fatalf("%s: %w\n", FuncNameWithFileInfo(), err)
+	}
+
+	var projectID string
+	if vOptProjectID != "" {
+		projectID = vOptProjectID
+	} else {
+		projectID = cred.ProjectID
+	}
+
+	c, err := bigquery.NewClient(mainCtx, projectID)
 	defer func() {
 		if err := c.Close(); err != nil {
-			log.Fatalf("%s: %v", FuncNameWithFileInfo(), err)
+			log.Fatalf("%s: %v\n", FuncNameWithFileInfo(), err)
 		}
 	}()
 	if err != nil {
-		log.Fatalf("%s: %v\n", FuncNameWithFileInfo(), err)
+		log.Fatalf("%s: %v\n\n", FuncNameWithFileInfo(), err)
 	}
 
 	_ = c
-
 }
 
 type googleApplicationCredentials struct {
@@ -81,39 +108,23 @@ type googleApplicationCredentials struct {
 	ClientX509CertURL       string `json:"client_x509_cert_url"`
 }
 
-func getGoogleProject() (string, error) {
-	path := os.Getenv(envNameGoogleApplicationCredentials)
-
-	switch {
-	case vOptProjectID != "":
-		return vOptProjectID, nil
-	case path != "":
-		return getGoogleProjectByGoogleApplicationCredentials(path)
-	case vOptOutputPath != "":
-		return getGoogleProjectByGoogleApplicationCredentials(vOptOutputPath)
-	default:
-		return "", fmt.Errorf("%s: set environment variable %s, or set option -%s", FuncNameWithFileInfo(), optNameKeyFile, envNameGoogleApplicationCredentials)
-	}
-
-}
-
-func getGoogleProjectByGoogleApplicationCredentials(path string) (string, error) {
+func newGoogleApplicationCredentials(path string) (*googleApplicationCredentials, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", FuncNameWithFileInfo(), err)
+		return nil, fmt.Errorf("%s: %w", FuncNameWithFileInfo(), err)
 	}
 
-	content, err := ioutil.ReadAll(file)
+	bytea, err := ioutil.ReadAll(file)
 	if err != nil {
-		return "", fmt.Errorf("getGoogleProject: %w", err)
+		return nil, fmt.Errorf("%s: %w", FuncNameWithFileInfo(), err)
 	}
 
 	cred := googleApplicationCredentials{}
-	if err := json.Unmarshal(content, &cred); err != nil {
-		return "", fmt.Errorf("getGoogleProject: %w", err)
+	if err := json.Unmarshal(bytea, &cred); err != nil {
+		return nil, fmt.Errorf("getGoogleProject: %w", err)
 	}
 
-	return cred.ProjectID, nil
+	return &cred, nil
 }
 
 // ResolveEnvs resolves environment variables from the arguments passed as environment variable names.
