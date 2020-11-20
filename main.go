@@ -4,6 +4,7 @@ import (
 	"cloud.google.com/go/bigquery"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"google.golang.org/api/iterator"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -20,6 +22,11 @@ const (
 	optNameKeyFile                      = "keyfile"
 	optNameOutputPath                   = "output"
 	envNameGoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
+)
+
+var (
+	ErrNoGoogleApplicationCredentials = fmt.Errorf("set environment variable %s, or set option -%s", envNameGoogleApplicationCredentials, optNameKeyFile)
+	ErrTableNameIsEmpty               = errors.New("tableName is empty")
 )
 
 var (
@@ -45,7 +52,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := run(ctx); err != nil {
-		log.Fatalf("%s: %v\n", caller(), err)
+		log.Fatalf("run: %v\n", err)
 	}
 }
 
@@ -54,25 +61,25 @@ func main() {
 func run(ctx context.Context) error {
 	var gen string
 
-	// NOTE(djeeno): output 1
+	// NOTE(djeeno): add header
 	gen = gen + fmt.Sprintf("%s\n", generatedContentHeader)
 
 	// NOTE(djeeno): if passed -keyfile,
 	if vOptKeyFile != "" {
 		if err := os.Setenv(envNameGoogleApplicationCredentials, vOptKeyFile); err != nil {
-			return fmt.Errorf("%s: %w", caller(), err)
+			return fmt.Errorf("os.Setenv: %w", err)
 		}
 	}
 
 	envKeyFile := os.Getenv(envNameGoogleApplicationCredentials)
 
 	if envKeyFile == "" {
-		return fmt.Errorf("%s: set environment variable %s, or set option -%s", caller(), envNameGoogleApplicationCredentials, optNameKeyFile)
+		return ErrNoGoogleApplicationCredentials
 	}
 
 	cred, err := newGoogleApplicationCredentials(envKeyFile)
 	if err != nil {
-		return fmt.Errorf("%s: %w", caller(), err)
+		return fmt.Errorf("newGoogleApplicationCredentials: %w", err)
 	}
 
 	var projectID string
@@ -84,33 +91,59 @@ func run(ctx context.Context) error {
 
 	c, err := bigquery.NewClient(ctx, projectID)
 	if err != nil {
-		return fmt.Errorf("%s: %w", caller(), err)
+		return fmt.Errorf("bigquery.NewClient: %w", err)
 	}
 	defer func() {
 		if err := c.Close(); err != nil {
-			log.Printf("%s: %v\n", caller(), err)
+			log.Printf("c.Close: %v\n", err)
 		}
 	}()
 
-	var tables []string
-	tableIterator := c.Dataset(vOptDataset).Tables(ctx)
+	tables, err := getAllTables(ctx, c, vOptDataset)
+	if err != nil {
+		return fmt.Errorf("getAllTables: %w", err)
+	}
+
+
+	for i, table := range tables {
+		if len(table.TableID) == 0 {
+			return ErrTableNameIsEmpty
+		}
+
+		head := table.TableID[:1] // NOTE(djeeno): first letter
+		tail := table.TableID[1:] // NOTE(djeeno): 2nd and subsequent characters. if len(s) == 1, return ""
+		structName := strings.ToUpper(head) + tail
+
+		// NOTE(djeeno): add structs
+		gen = gen + fmt.Sprintf("// %s is Big Query table name.\n", structName)
+		gen = gen + fmt.Sprintf("type %s struct {\n", structName)
+		gen = gen + "\t// DEBUG: define structs fields\n"
+		gen = gen + "}\n"
+
+		if !isLastLoop(i, len(tables)) {
+			gen = gen + "\n"
+		}
+	}
+
+	// NOTE(djeeno): output
+	fmt.Print(gen)
+
+	return nil
+}
+
+func getAllTables(ctx context.Context, c *bigquery.Client, datasetID string) (tables []*bigquery.Table, err error) {
+	tableIterator := c.Dataset(datasetID).Tables(ctx)
 	for {
 		table, err := tableIterator.Next()
 		if err != nil {
 			if err == iterator.Done {
 				break
 			}
-			return fmt.Errorf("%s: %w", caller(), err)
+			return nil, fmt.Errorf("tableIterator.Next: %w", err)
 		}
-		tables = append(tables, table.TableID)
+		tables = append(tables, table)
 	}
-
-	for _, table := range tables {
-		gen = gen + fmt.Sprintf("type %s struct {}\n", table)
-	}
-
-	print(gen)
-	return nil
+	return tables, nil
 }
 
 type googleApplicationCredentials struct {
@@ -143,6 +176,10 @@ func newGoogleApplicationCredentials(path string) (*googleApplicationCredentials
 	}
 
 	return &cred, nil
+}
+
+func isLastLoop(loopIndex, lengthOfLoop int) bool {
+	return loopIndex+1 == lengthOfLoop
 }
 
 // ResolveEnvs resolves environment variables from the arguments passed as environment variable names.
