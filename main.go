@@ -24,25 +24,25 @@ const (
 	optNameKeyFile                      = "keyfile"
 	optNameOutputPath                   = "output"
 	envNameGoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
+	envNameBigQueryDataset              = "BIGQUERY_DATASET"
 )
 
 var (
-	ErrNoGoogleApplicationCredentials = fmt.Errorf("set environment variable %s, or set option -%s", envNameGoogleApplicationCredentials, optNameKeyFile)
-	ErrTableNameIsEmpty               = errors.New("tableName is empty")
+	ErrTableNameIsEmpty = errors.New("tableName is empty")
 )
 
 var (
-	vOptProjectID  string
-	vOptDataset    string
-	vOptKeyFile    string
-	vOptOutputPath string
+	optValueProjectID  string
+	optValueDataset    string
+	optValueKeyFile    string
+	optValueOutputPath string
 )
 
 func init() {
-	flag.StringVar(&vOptProjectID, optNameProjectID, "", "")
-	flag.StringVar(&vOptDataset, optNameDataset, "", "")
-	flag.StringVar(&vOptKeyFile, optNameKeyFile, "", "path to service account json key file")
-	flag.StringVar(&vOptOutputPath, optNameOutputPath, "", "path to output the generated code")
+	flag.StringVar(&optValueProjectID, optNameProjectID, "", "")
+	flag.StringVar(&optValueDataset, optNameDataset, "", "")
+	flag.StringVar(&optValueKeyFile, optNameKeyFile, "", "path to service account json key file")
+	flag.StringVar(&optValueOutputPath, optNameOutputPath, "", "path to output the generated code")
 	flag.Parse()
 }
 
@@ -67,27 +67,25 @@ func run(ctx context.Context) error {
 	// NOTE(djeeno): add header
 	gen = gen + generatedContentHeader
 
-	// NOTE(djeeno): if passed -keyfile,
-	if vOptKeyFile != "" {
-		if err := os.Setenv(envNameGoogleApplicationCredentials, vOptKeyFile); err != nil {
+	keyfile, err := getOptOtherwiseEnv(optNameKeyFile, optValueKeyFile, envNameGoogleApplicationCredentials)
+	if err != nil {
+		return fmt.Errorf("getOptOtherwiseEnv: %w", err)
+	}
+	// set GOOGLE_APPLICATION_CREDENTIALS for Google Cloud SDK
+	if os.Getenv(envNameGoogleApplicationCredentials) != keyfile {
+		if err := os.Setenv(envNameGoogleApplicationCredentials, keyfile); err != nil {
 			return fmt.Errorf("os.Setenv: %w", err)
 		}
 	}
 
-	envKeyFile := os.Getenv(envNameGoogleApplicationCredentials)
-
-	if envKeyFile == "" {
-		return ErrNoGoogleApplicationCredentials
-	}
-
-	cred, err := newGoogleApplicationCredentials(envKeyFile)
+	cred, err := newGoogleApplicationCredentials(keyfile)
 	if err != nil {
 		return fmt.Errorf("newGoogleApplicationCredentials: %w", err)
 	}
 
 	var projectID string
-	if vOptProjectID != "" {
-		projectID = vOptProjectID
+	if optValueProjectID != "" {
+		projectID = optValueProjectID
 	} else {
 		projectID = cred.ProjectID
 	}
@@ -102,7 +100,12 @@ func run(ctx context.Context) error {
 		}
 	}()
 
-	tables, err := getAllTables(ctx, c, vOptDataset)
+	dataset, err := getOptOtherwiseEnv(optNameDataset, optValueDataset, envNameBigQueryDataset)
+	if err != nil {
+		return fmt.Errorf("getOptOtherwiseEnv: %w", err)
+	}
+
+	tables, err := getAllTables(ctx, c, dataset)
 	if err != nil {
 		return fmt.Errorf("getAllTables: %w", err)
 	}
@@ -182,6 +185,17 @@ func newGoogleApplicationCredentials(path string) (*googleApplicationCredentials
 
 func isLastLoop(loopIndex, lengthOfLoop int) bool {
 	return loopIndex+1 == lengthOfLoop
+}
+
+func getOptOtherwiseEnv(optKey, optValue, envKey string) (string, error) {
+	if optValue != "" {
+		return optValue, nil
+	}
+	envValue := os.Getenv(envKey)
+	if envValue != "" {
+		return envValue, nil
+	}
+	return "", fmt.Errorf("set option -%s, or set environment variable %s", optKey, envKey)
 }
 
 // resolveEnvs resolves environment variables from the arguments passed as environment variable names.
