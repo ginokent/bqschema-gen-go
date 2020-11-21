@@ -1,4 +1,4 @@
-//go:generate go run github.com/djeeno/bqtableschema/generator.go
+//go:generate go run github.com/djeeno/bqtableschema
 
 package main
 
