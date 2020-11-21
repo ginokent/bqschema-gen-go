@@ -4,6 +4,7 @@ package main
 
 import (
 	"cloud.google.com/go/bigquery"
+	"cloud.google.com/go/civil"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,10 +13,14 @@ import (
 	"google.golang.org/api/iterator"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -114,15 +119,41 @@ func run(ctx context.Context) error {
 		if len(table.TableID) == 0 {
 			return ErrTableNameIsEmpty
 		}
-
-		head := table.TableID[:1] // NOTE(djeeno): first letter
-		tail := table.TableID[1:] // NOTE(djeeno): 2nd and subsequent characters. if len(s) == 1, return ""
-		structName := strings.ToUpper(head) + tail
+		structName := capitalizeInitial(table.TableID)
 
 		// NOTE(djeeno): add structs
 		gen = gen + fmt.Sprintf("// %s is Big Query table name.\n", structName)
 		gen = gen + fmt.Sprintf("type %s struct {\n", structName)
 		gen = gen + "\t// DEBUG: define structs fields\n"
+
+		md, err := table.Metadata(ctx)
+		if err != nil {
+			return fmt.Errorf("table.Metadata: %w", err)
+		}
+		schemas := []*bigquery.FieldSchema(md.Schema)
+		var longestNameLength int
+		var longestTypeLength int
+		for _, schema := range schemas {
+			// 構造体のフィールド名のフォーマット用
+			nameLength := len(schema.Name)
+			if longestNameLength < nameLength {
+				longestNameLength = nameLength
+			}
+			// 構造体のフィールドの型のフォーマット用
+			typeLength := len(bigqueryFieldTypeToGoType(schema.Type))
+			if longestTypeLength < typeLength {
+				longestTypeLength = typeLength
+			}
+		}
+		format := "\t%-" + strconv.Itoa(longestNameLength) + "s %-" + strconv.Itoa(longestTypeLength) + "s `bigquery:\"%s\"`\n"
+		for _, schema := range schemas {
+			gen = gen + fmt.Sprintf(
+				format,
+				capitalizeInitial(schema.Name),
+				bigqueryFieldTypeToGoType(schema.Type),
+				schema.Name,
+			)
+		}
 		gen = gen + "}\n"
 
 		if !isLastLoop(i, len(tables)) {
@@ -196,6 +227,51 @@ func getOptOtherwiseEnv(optKey, optValue, envKey string) (string, error) {
 		return envValue, nil
 	}
 	return "", fmt.Errorf("set option -%s, or set environment variable %s", optKey, envKey)
+}
+
+func capitalizeInitial(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+var (
+	typeOfDate     = reflect.TypeOf(civil.Date{})
+	typeOfTime     = reflect.TypeOf(civil.Time{})
+	typeOfDateTime = reflect.TypeOf(civil.DateTime{})
+	typeOfGoTime   = reflect.TypeOf(time.Time{})
+	typeOfRat      = reflect.TypeOf(&big.Rat{})
+)
+
+func bigqueryFieldTypeToGoType(bigqueryFieldType bigquery.FieldType) string {
+	switch bigqueryFieldType {
+	case bigquery.DateFieldType:
+		return typeOfDate.String()
+	case bigquery.TimeFieldType:
+		return typeOfTime.String()
+	case bigquery.DateTimeFieldType:
+		return typeOfDateTime.String()
+	case bigquery.TimestampFieldType:
+		return typeOfGoTime.String()
+	case bigquery.NumericFieldType:
+		return typeOfRat.String()
+	//
+	case bigquery.IntegerFieldType:
+		return reflect.Int64.String()
+	//
+	// TODO: reflect.Slice, reflect.Array
+	// TODO: reflect.Ptr
+	// TODO: reflect.Struct
+	case bigquery.StringFieldType:
+		return reflect.String.String()
+	case bigquery.BooleanFieldType:
+		return reflect.Bool.String()
+	case bigquery.FloatFieldType:
+		return reflect.Float64.String()
+	default:
+		return reflect.Invalid.String()
+	}
 }
 
 // resolveEnvs resolves environment variables from the arguments passed as environment variable names.
