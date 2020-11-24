@@ -112,12 +112,13 @@ func run(ctx context.Context) error {
 	}
 
 	for i, table := range tables {
-		str, err := generateTableSchemaStruct(ctx, table)
+		structCode, err := generateTableSchemaStruct(ctx, table)
 		if err != nil {
-			return fmt.Errorf("generateTableSchemaStruct: %w", err)
+			log.Printf("generateTableSchemaStruct: %v\n", err)
+			continue
 		}
 
-		generatedCode = generatedCode + str
+		generatedCode = generatedCode + structCode
 
 		if !isLastLoop(i, len(tables)) {
 			generatedCode = generatedCode + "\n"
@@ -146,13 +147,14 @@ func generateTableSchemaStruct(ctx context.Context, table *bigquery.Table) (stri
 
 	schemas := []*bigquery.FieldSchema(md.Schema)
 
-	var longestNameLen int
-	var longestTypeLen int
+	// NOTE(djeeno): for formats
+	var longestNameLength int
+	var longestTypeLength int
 	for _, schema := range schemas {
 		// struct field name length for format
 		nameLength := len(schema.Name)
-		if longestNameLen < nameLength {
-			longestNameLen = nameLength
+		if longestNameLength < nameLength {
+			longestNameLength = nameLength
 		}
 		goTypeStr, err := bigqueryFieldTypeToGoType(schema.Type)
 		if err != nil {
@@ -160,23 +162,18 @@ func generateTableSchemaStruct(ctx context.Context, table *bigquery.Table) (stri
 		}
 		// struct field TYPE name length for format
 		typeLength := len(goTypeStr)
-		if longestTypeLen < typeLength {
-			longestTypeLen = typeLength
+		if longestTypeLength < typeLength {
+			longestTypeLength = typeLength
 		}
 	}
-	format := "\t%-" + strconv.Itoa(longestNameLen) + "s %-" + strconv.Itoa(longestTypeLen) + "s `bigquery:\"%s\"`\n"
+	format := "\t%-" + strconv.Itoa(longestNameLength) + "s %-" + strconv.Itoa(longestTypeLength) + "s `bigquery:\"%s\"`\n"
 
 	for _, schema := range schemas {
 		goTypeStr, err := bigqueryFieldTypeToGoType(schema.Type)
 		if err != nil {
 			return "", fmt.Errorf("bigqueryFieldTypeToGoType: %w", err)
 		}
-		generatedCode = generatedCode + fmt.Sprintf(
-			format,
-			capitalizeInitial(schema.Name),
-			goTypeStr,
-			schema.Name,
-		)
+		generatedCode = generatedCode + fmt.Sprintf(format, capitalizeInitial(schema.Name), goTypeStr, schema.Name)
 	}
 	generatedCode = generatedCode + "}\n"
 
