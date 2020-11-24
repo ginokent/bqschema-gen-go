@@ -60,10 +60,7 @@ const (
 // Run is effectively a `main` function.
 // It is separated from the `main` function because of addressing an issue where` defer` is not executed when `os.Exit` is executed.
 func Run(ctx context.Context) error {
-	var generatedCode string
-
-	// NOTE(djeeno): add header
-	generatedCode = generatedContentHeader
+	var tail string
 
 	keyfile, err := getOptOrEnvOrDefault(optNameKeyFile, optValueKeyFile, envNameGoogleApplicationCredentials, "")
 	if err != nil {
@@ -120,12 +117,17 @@ func Run(ctx context.Context) error {
 			continue
 		}
 
-		generatedCode = generatedCode + structCode
+		tail = tail + structCode
 
 		if !isLastLoop(i, len(tables)) {
-			generatedCode = generatedCode + "\n"
+			tail = tail + "\n"
 		}
 	}
+
+	// TODO(djeeno): import packages
+
+	// NOTE(djeeno): combine
+	generatedCode := generatedContentHeader + tail
 
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
