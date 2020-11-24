@@ -24,15 +24,20 @@ import (
 )
 
 const (
-	optNameProjectID                    = "project"
-	optNameDataset                      = "dataset"
-	optNameKeyFile                      = "keyfile"
-	optNameOutputPath                   = "output"
+	// optName
+	optNameProjectID  = "project"
+	optNameDataset    = "dataset"
+	optNameKeyFile    = "keyfile"
+	optNameOutputPath = "output"
+	// optDefaultValue
+	optDefaultValueOutputPath = "bqtableschema.generated.go"
+	// envName
 	envNameGoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 	envNameBigQueryDataset              = "BIGQUERY_DATASET"
 )
 
 var (
+	// optValue
 	optValueProjectID  string
 	optValueDataset    string
 	optValueKeyFile    string
@@ -43,7 +48,7 @@ func init() {
 	flag.StringVar(&optValueProjectID, optNameProjectID, "", "")
 	flag.StringVar(&optValueDataset, optNameDataset, "", "")
 	flag.StringVar(&optValueKeyFile, optNameKeyFile, "", "path to service account json key file")
-	flag.StringVar(&optValueOutputPath, optNameOutputPath, "", "path to output the generated code")
+	flag.StringVar(&optValueOutputPath, optNameOutputPath, optDefaultValueOutputPath, "path to output the generated code")
 	flag.Parse()
 }
 
@@ -125,8 +130,20 @@ func run(ctx context.Context) error {
 		}
 	}
 
+	file, err := os.OpenFile("test.txt", os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf("os.OpenFile: %w", err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			log.Printf("file.Close: %v\n", err)
+		}
+	}()
+
 	// NOTE(djeeno): output
-	fmt.Print(generatedCode)
+	if _, err := fmt.Fprint(file, generatedCode); err != nil {
+		return fmt.Errorf("fmt.Fprint: %w", err)
+	}
 
 	return nil
 }
@@ -211,17 +228,17 @@ type googleApplicationCredentials struct {
 func newGoogleApplicationCredentials(path string) (*googleApplicationCredentials, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", caller(), err)
+		return nil, fmt.Errorf("os.Open: %w", err)
 	}
 
 	bytea, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", caller(), err)
+		return nil, fmt.Errorf("ioutil.ReadAll: %w", err)
 	}
 
 	cred := googleApplicationCredentials{}
 	if err := json.Unmarshal(bytea, &cred); err != nil {
-		return nil, fmt.Errorf("%s: %w", caller(), err)
+		return nil, fmt.Errorf("json.Unmarshal: %w", err)
 	}
 
 	return &cred, nil
@@ -296,7 +313,7 @@ func resolveEnvs(keys ...string) (map[string]string, error) {
 	for _, key := range keys {
 		envs[key] = os.Getenv(key)
 		if envs[key] == "" {
-			return nil, fmt.Errorf("%s: environment variable %s is empty", caller(), key)
+			return nil, fmt.Errorf("resolveEnvs: environment variable %s is empty", key)
 		}
 	}
 
