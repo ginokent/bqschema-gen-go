@@ -116,45 +116,12 @@ func run(ctx context.Context) error {
 	}
 
 	for i, table := range tables {
-		if len(table.TableID) == 0 {
-			return ErrTableNameIsEmpty
-		}
-		structName := capitalizeInitial(table.TableID)
-
-		// NOTE(djeeno): add structs
-		gen = gen + fmt.Sprintf("// %s is Big Query table name.\n", structName)
-		gen = gen + fmt.Sprintf("type %s struct {\n", structName)
-		gen = gen + "\t// DEBUG: define structs fields\n"
-
-		md, err := table.Metadata(ctx)
+		str, err := generateTableSchemaStruct(ctx, table)
 		if err != nil {
-			return fmt.Errorf("table.Metadata: %w", err)
+			return fmt.Errorf("generateTableSchemaStruct: %w", err)
 		}
-		schemas := []*bigquery.FieldSchema(md.Schema)
-		var longestNameLength int
-		var longestTypeLength int
-		for _, schema := range schemas {
-			// 構造体のフィールド名のフォーマット用
-			nameLength := len(schema.Name)
-			if longestNameLength < nameLength {
-				longestNameLength = nameLength
-			}
-			// 構造体のフィールドの型のフォーマット用
-			typeLength := len(bigqueryFieldTypeToGoType(schema.Type))
-			if longestTypeLength < typeLength {
-				longestTypeLength = typeLength
-			}
-		}
-		format := "\t%-" + strconv.Itoa(longestNameLength) + "s %-" + strconv.Itoa(longestTypeLength) + "s `bigquery:\"%s\"`\n"
-		for _, schema := range schemas {
-			gen = gen + fmt.Sprintf(
-				format,
-				capitalizeInitial(schema.Name),
-				bigqueryFieldTypeToGoType(schema.Type),
-				schema.Name,
-			)
-		}
-		gen = gen + "}\n"
+
+		gen = gen + str
 
 		if !isLastLoop(i, len(tables)) {
 			gen = gen + "\n"
@@ -165,6 +132,51 @@ func run(ctx context.Context) error {
 	fmt.Print(gen)
 
 	return nil
+}
+
+func generateTableSchemaStruct(ctx context.Context, table *bigquery.Table) (string, error) {
+	var gen string
+	if len(table.TableID) == 0 {
+		return "", ErrTableNameIsEmpty
+	}
+	structName := capitalizeInitial(table.TableID)
+
+	// NOTE(djeeno): add structs
+	gen = gen + fmt.Sprintf("// %s is Big Query table name.\n", structName)
+	gen = gen + fmt.Sprintf("type %s struct {\n", structName)
+	gen = gen + "\t// DEBUG: define structs fields\n"
+
+	md, err := table.Metadata(ctx)
+	if err != nil {
+		return "", fmt.Errorf("table.Metadata: %w", err)
+	}
+	schemas := []*bigquery.FieldSchema(md.Schema)
+	var longestNameLength int
+	var longestTypeLength int
+	for _, schema := range schemas {
+		// 構造体のフィールド名のフォーマット用
+		nameLength := len(schema.Name)
+		if longestNameLength < nameLength {
+			longestNameLength = nameLength
+		}
+		// 構造体のフィールドの型のフォーマット用
+		typeLength := len(bigqueryFieldTypeToGoType(schema.Type))
+		if longestTypeLength < typeLength {
+			longestTypeLength = typeLength
+		}
+	}
+	format := "\t%-" + strconv.Itoa(longestNameLength) + "s %-" + strconv.Itoa(longestTypeLength) + "s `bigquery:\"%s\"`\n"
+	for _, schema := range schemas {
+		gen = gen + fmt.Sprintf(
+			format,
+			capitalizeInitial(schema.Name),
+			bigqueryFieldTypeToGoType(schema.Type),
+			schema.Name,
+		)
+	}
+	gen = gen + "}\n"
+
+	return gen, nil
 }
 
 func getAllTables(ctx context.Context, c *bigquery.Client, datasetID string) (tables []*bigquery.Table, err error) {
