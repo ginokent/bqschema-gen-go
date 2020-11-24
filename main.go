@@ -248,7 +248,7 @@ func isLastLoop(loopIndex, lengthOfLoop int) bool {
 	return loopIndex+1 == lengthOfLoop
 }
 
-func getOptOtherwiseEnv(optKey, optValue, envKey string) (string, error) {
+func getOptOtherwiseEnv(optKey, optValue, envKey string) (value string, err error) {
 	if optValue != "" {
 		return optValue, nil
 	}
@@ -259,7 +259,7 @@ func getOptOtherwiseEnv(optKey, optValue, envKey string) (string, error) {
 	return "", fmt.Errorf("set option -%s, or set environment variable %s", optKey, envKey)
 }
 
-func capitalizeInitial(s string) string {
+func capitalizeInitial(s string) (capitalized string) {
 	if len(s) == 0 {
 		return ""
 	}
