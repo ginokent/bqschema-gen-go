@@ -26,13 +26,14 @@ const (
 	optNameProjectID  = "project"
 	optNameDataset    = "dataset"
 	optNameKeyFile    = "keyfile"
-	optNameOutputPath = "output"
+	optNameOutputFile = "output"
 	// envName
 	envNameGoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 	envNameBigQueryDataset              = "BIGQUERY_DATASET"
+	envNameOutputFile                   = "OUTPUT_FILE"
 	// defaultValue
 	defaultValueEmpty      = ""
-	defaultValueOutputPath = "bqtableschema.generated.go"
+	defaultValueOutputFile = "bqtableschema.generated.go"
 )
 
 var (
@@ -47,7 +48,7 @@ func init() {
 	flag.StringVar(&optValueProjectID, optNameProjectID, defaultValueEmpty, "")
 	flag.StringVar(&optValueDataset, optNameDataset, defaultValueEmpty, "")
 	flag.StringVar(&optValueKeyFile, optNameKeyFile, defaultValueEmpty, "path to service account json key file")
-	flag.StringVar(&optValueOutputPath, optNameOutputPath, defaultValueEmpty, "path to output the generated code")
+	flag.StringVar(&optValueOutputPath, optNameOutputFile, defaultValueEmpty, "path to output the generated code")
 	flag.Parse()
 }
 
@@ -64,9 +65,9 @@ func Run(ctx context.Context) error {
 	// NOTE(djeeno): add header
 	generatedCode = generatedContentHeader
 
-	keyfile, err := getOptOtherwiseEnv(optNameKeyFile, optValueKeyFile, envNameGoogleApplicationCredentials)
+	keyfile, err := getOptOrEnvOrDefault(optNameKeyFile, optValueKeyFile, envNameGoogleApplicationCredentials, "")
 	if err != nil {
-		return fmt.Errorf("getOptOtherwiseEnv: %w", err)
+		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 	// set GOOGLE_APPLICATION_CREDENTIALS for Google Cloud SDK
 	if os.Getenv(envNameGoogleApplicationCredentials) != keyfile {
@@ -97,9 +98,14 @@ func Run(ctx context.Context) error {
 		}
 	}()
 
-	dataset, err := getOptOtherwiseEnv(optNameDataset, optValueDataset, envNameBigQueryDataset)
+	dataset, err := getOptOrEnvOrDefault(optNameDataset, optValueDataset, envNameBigQueryDataset, "")
 	if err != nil {
-		return fmt.Errorf("getOptOtherwiseEnv: %w", err)
+		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
+	}
+
+	filePath, err := getOptOrEnvOrDefault(optNameOutputFile, optValueOutputPath, envNameOutputFile, defaultValueOutputFile)
+	if err != nil {
+		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
 	tables, err := getAllTables(ctx, c, dataset)
@@ -121,7 +127,7 @@ func Run(ctx context.Context) error {
 		}
 	}
 
-	file, err := os.OpenFile("test.txt", os.O_WRONLY|os.O_CREATE, 0644)
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return fmt.Errorf("os.OpenFile: %w", err)
 	}
@@ -239,14 +245,20 @@ func isLastLoop(loopIndex, lengthOfLoop int) bool {
 	return loopIndex+1 == lengthOfLoop
 }
 
-func getOptOtherwiseEnv(optKey, optValue, envKey string) (value string, err error) {
+func getOptOrEnvOrDefault(optKey, optValue, envKey, defaultValue string) (string, error) {
 	if optValue != "" {
 		return optValue, nil
 	}
+
 	envValue := os.Getenv(envKey)
 	if envValue != "" {
 		return envValue, nil
 	}
+
+	if defaultValue != "" {
+		return defaultValue, nil
+	}
+
 	return "", fmt.Errorf("set option -%s, or set environment variable %s", optKey, envKey)
 }
 
