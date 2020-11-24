@@ -111,7 +111,7 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("getAllTables: %w", err)
 	}
 
-	importPackagesUniq := make(map[string]bool, 0)
+	importPackagesUniq := make(map[string]bool)
 
 	for i, table := range tables {
 		structCode, packages, err := generateTableSchemaCode(ctx, table)
