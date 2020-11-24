@@ -3,14 +3,10 @@
 package main
 
 import (
-	"cloud.google.com/go/bigquery"
-	"cloud.google.com/go/civil"
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"google.golang.org/api/iterator"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -21,6 +17,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"cloud.google.com/go/bigquery"
+	"cloud.google.com/go/civil"
+	"google.golang.org/api/iterator"
 )
 
 const (
@@ -30,10 +30,6 @@ const (
 	optNameOutputPath                   = "output"
 	envNameGoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 	envNameBigQueryDataset              = "BIGQUERY_DATASET"
-)
-
-var (
-	ErrTableNameIsEmpty = errors.New("tableName is empty")
 )
 
 var (
@@ -67,10 +63,10 @@ func main() {
 // run is effectively a `main` function.
 // It is separated from the `main` function because of addressing an issue where` defer` is not executed when `os.Exit` is executed.
 func run(ctx context.Context) error {
-	var gen string
+	var generatedCode string
 
 	// NOTE(djeeno): add header
-	gen = gen + generatedContentHeader
+	generatedCode = generatedContentHeader
 
 	keyfile, err := getOptOtherwiseEnv(optNameKeyFile, optValueKeyFile, envNameGoogleApplicationCredentials)
 	if err != nil {
@@ -121,62 +117,70 @@ func run(ctx context.Context) error {
 			return fmt.Errorf("generateTableSchemaStruct: %w", err)
 		}
 
-		gen = gen + str
+		generatedCode = generatedCode + str
 
 		if !isLastLoop(i, len(tables)) {
-			gen = gen + "\n"
+			generatedCode = generatedCode + "\n"
 		}
 	}
 
 	// NOTE(djeeno): output
-	fmt.Print(gen)
+	fmt.Print(generatedCode)
 
 	return nil
 }
 
 func generateTableSchemaStruct(ctx context.Context, table *bigquery.Table) (string, error) {
-	var gen string
 	if len(table.TableID) == 0 {
-		return "", ErrTableNameIsEmpty
+		return "", fmt.Errorf("*bigquery.Table.TableID is empty. *bigquery.Table struct dump: %#v", table)
 	}
 	structName := capitalizeInitial(table.TableID)
-
-	// NOTE(djeeno): add structs
-	gen = gen + fmt.Sprintf("// %s is Big Query table name.\n", structName)
-	gen = gen + fmt.Sprintf("type %s struct {\n", structName)
-	gen = gen + "\t// DEBUG: define structs fields\n"
 
 	md, err := table.Metadata(ctx)
 	if err != nil {
 		return "", fmt.Errorf("table.Metadata: %w", err)
 	}
+
+	// NOTE(djeeno): structs
+	generatedCode := fmt.Sprintf("// %s is BigQuery Table (%s) schema struct.\n// Description: %s\ntype %s struct {\n", structName, md.FullID, md.Description, structName)
+
 	schemas := []*bigquery.FieldSchema(md.Schema)
-	var longestNameLength int
-	var longestTypeLength int
+
+	var longestNameLen int
+	var longestTypeLen int
 	for _, schema := range schemas {
-		// 構造体のフィールド名のフォーマット用
+		// struct field name length for format
 		nameLength := len(schema.Name)
-		if longestNameLength < nameLength {
-			longestNameLength = nameLength
+		if longestNameLen < nameLength {
+			longestNameLen = nameLength
 		}
-		// 構造体のフィールドの型のフォーマット用
-		typeLength := len(bigqueryFieldTypeToGoType(schema.Type))
-		if longestTypeLength < typeLength {
-			longestTypeLength = typeLength
+		goTypeStr, err := bigqueryFieldTypeToGoType(schema.Type)
+		if err != nil {
+			return "", fmt.Errorf("bigqueryFieldTypeToGoType: %w", err)
+		}
+		// struct field TYPE name length for format
+		typeLength := len(goTypeStr)
+		if longestTypeLen < typeLength {
+			longestTypeLen = typeLength
 		}
 	}
-	format := "\t%-" + strconv.Itoa(longestNameLength) + "s %-" + strconv.Itoa(longestTypeLength) + "s `bigquery:\"%s\"`\n"
+	format := "\t%-" + strconv.Itoa(longestNameLen) + "s %-" + strconv.Itoa(longestTypeLen) + "s `bigquery:\"%s\"`\n"
+
 	for _, schema := range schemas {
-		gen = gen + fmt.Sprintf(
+		goTypeStr, err := bigqueryFieldTypeToGoType(schema.Type)
+		if err != nil {
+			return "", fmt.Errorf("bigqueryFieldTypeToGoType: %w", err)
+		}
+		generatedCode = generatedCode + fmt.Sprintf(
 			format,
 			capitalizeInitial(schema.Name),
-			bigqueryFieldTypeToGoType(schema.Type),
+			goTypeStr,
 			schema.Name,
 		)
 	}
-	gen = gen + "}\n"
+	generatedCode = generatedCode + "}\n"
 
-	return gen, nil
+	return generatedCode, nil
 }
 
 func getAllTables(ctx context.Context, c *bigquery.Client, datasetID string) (tables []*bigquery.Table, err error) {
@@ -249,40 +253,42 @@ func capitalizeInitial(s string) string {
 }
 
 var (
-	typeOfDate     = reflect.TypeOf(civil.Date{})
-	typeOfTime     = reflect.TypeOf(civil.Time{})
-	typeOfDateTime = reflect.TypeOf(civil.DateTime{})
-	typeOfGoTime   = reflect.TypeOf(time.Time{})
-	typeOfRat      = reflect.TypeOf(&big.Rat{})
+	typeOfByteSlice = reflect.TypeOf([]byte{})
+	typeOfDate      = reflect.TypeOf(civil.Date{})
+	typeOfTime      = reflect.TypeOf(civil.Time{})
+	typeOfDateTime  = reflect.TypeOf(civil.DateTime{})
+	typeOfGoTime    = reflect.TypeOf(time.Time{})
+	typeOfRat       = reflect.TypeOf(&big.Rat{})
 )
 
-func bigqueryFieldTypeToGoType(bigqueryFieldType bigquery.FieldType) string {
+func bigqueryFieldTypeToGoType(bigqueryFieldType bigquery.FieldType) (string, error) {
 	switch bigqueryFieldType {
+	case bigquery.BytesFieldType:
+		return typeOfByteSlice.String(), nil
 	case bigquery.DateFieldType:
-		return typeOfDate.String()
+		return typeOfDate.String(), nil
 	case bigquery.TimeFieldType:
-		return typeOfTime.String()
+		return typeOfTime.String(), nil
 	case bigquery.DateTimeFieldType:
-		return typeOfDateTime.String()
+		return typeOfDateTime.String(), nil
 	case bigquery.TimestampFieldType:
-		return typeOfGoTime.String()
+		return typeOfGoTime.String(), nil
 	case bigquery.NumericFieldType:
-		return typeOfRat.String()
-	//
+		return typeOfRat.String(), nil
 	case bigquery.IntegerFieldType:
-		return reflect.Int64.String()
-	//
-	// TODO: reflect.Slice, reflect.Array
-	// TODO: reflect.Ptr
-	// TODO: reflect.Struct
+		return reflect.Int64.String(), nil
+	case bigquery.RecordFieldType:
+		return "", fmt.Errorf("bigquery.FieldType not supported. bigquery.FieldType=%s", bigqueryFieldType)
+	case bigquery.GeographyFieldType:
+		return reflect.String.String(), nil
 	case bigquery.StringFieldType:
-		return reflect.String.String()
+		return reflect.String.String(), nil
 	case bigquery.BooleanFieldType:
-		return reflect.Bool.String()
+		return reflect.Bool.String(), nil
 	case bigquery.FloatFieldType:
-		return reflect.Float64.String()
+		return reflect.Float64.String(), nil
 	default:
-		return reflect.Invalid.String()
+		return "", fmt.Errorf("bigquery.FieldType not supported. bigquery.FieldType=%s", bigqueryFieldType)
 	}
 }
 
