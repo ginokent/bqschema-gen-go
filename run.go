@@ -1,5 +1,3 @@
-//go:generate go run github.com/djeeno/bqtableschema
-
 package main
 
 import (
@@ -29,11 +27,12 @@ const (
 	optNameDataset    = "dataset"
 	optNameKeyFile    = "keyfile"
 	optNameOutputPath = "output"
-	// optDefaultValue
-	optDefaultValueOutputPath = "bqtableschema.generated.go"
 	// envName
 	envNameGoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 	envNameBigQueryDataset              = "BIGQUERY_DATASET"
+	// defaultValue
+	defaultValueEmpty      = ""
+	defaultValueOutputPath = "bqtableschema.generated.go"
 )
 
 var (
@@ -45,10 +44,10 @@ var (
 )
 
 func init() {
-	flag.StringVar(&optValueProjectID, optNameProjectID, "", "")
-	flag.StringVar(&optValueDataset, optNameDataset, "", "")
-	flag.StringVar(&optValueKeyFile, optNameKeyFile, "", "path to service account json key file")
-	flag.StringVar(&optValueOutputPath, optNameOutputPath, optDefaultValueOutputPath, "path to output the generated code")
+	flag.StringVar(&optValueProjectID, optNameProjectID, defaultValueEmpty, "")
+	flag.StringVar(&optValueDataset, optNameDataset, defaultValueEmpty, "")
+	flag.StringVar(&optValueKeyFile, optNameKeyFile, defaultValueEmpty, "path to service account json key file")
+	flag.StringVar(&optValueOutputPath, optNameOutputPath, defaultValueEmpty, "path to output the generated code")
 	flag.Parse()
 }
 
