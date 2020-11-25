@@ -34,7 +34,7 @@ const (
 	envNameOutputFile                   = "OUTPUT_FILE"
 	// defaultValue
 	defaultValueEmpty      = ""
-	defaultValueOutputFile = "bqtableschema.generated.go"
+	defaultValueOutputFile = "bqtableschema/bqtableschema.generated.go"
 )
 
 var (
@@ -159,6 +159,9 @@ func Run(ctx context.Context) error {
 	// NOTE(djeeno): combine
 	generatedCode := generatedContentHeader + importsCode + tail
 
+	if err := mkdirIfNotExist(filepath.Dir(filePath)); err != nil {
+		return fmt.Errorf("mkdirIfNotExist: %w", err)
+	}
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return fmt.Errorf("os.OpenFile: %w", err)
@@ -227,6 +230,13 @@ func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (genera
 	generatedCode = generatedCode + "}\n"
 
 	return generatedCode, packages, nil
+}
+
+func mkdirIfNotExist(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return os.Mkdir(path, 0755)
+	}
+	return nil
 }
 
 func getAllTables(ctx context.Context, c *bigquery.Client, datasetID string) (tables []*bigquery.Table, err error) {
