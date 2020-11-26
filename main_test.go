@@ -1,11 +1,66 @@
 package main
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
 	"cloud.google.com/go/bigquery"
 )
+
+func Test_getOptOrEnvOrDefault(t *testing.T) {
+	var (
+		empty            = ""
+		testOptKey       = "testOptKey"
+		testOptValue     = "testOptValue"
+		testEnvKey       = "TEST_ENV_KEY"
+		testEnvValue     = "testEnvValue"
+		testDefaultValue = "testDefaultValue"
+	)
+
+	{
+		v, err := getOptOrEnvOrDefault(empty, empty, empty, empty)
+		if err == nil {
+			t.Fail()
+		}
+		if v != empty {
+			t.Fail()
+		}
+	}
+
+	{
+		v, err := getOptOrEnvOrDefault(testOptKey, testOptValue, testEnvKey, testDefaultValue)
+		if err != nil {
+			t.Fail()
+		}
+		if v != testOptValue {
+			t.Fail()
+		}
+	}
+
+	{
+		_ = os.Setenv(testEnvKey, testEnvValue)
+		v, err := getOptOrEnvOrDefault(testOptKey, empty, testEnvKey, testDefaultValue)
+		if err != nil {
+			t.Fail()
+		}
+		if v != testEnvValue {
+			t.Fail()
+		}
+		_ = os.Unsetenv(testEnvKey)
+	}
+
+	{
+		v, err := getOptOrEnvOrDefault(testOptKey, empty, testEnvKey, testDefaultValue)
+		if err != nil {
+			t.Fail()
+		}
+		if v != testDefaultValue {
+			t.Fail()
+		}
+	}
+
+}
 
 func Test_capitalizeInitial(t *testing.T) {
 	var (

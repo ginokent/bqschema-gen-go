@@ -283,6 +283,10 @@ func readFile(path string) ([]byte, error) {
 }
 
 func getOptOrEnvOrDefault(optKey, optValue, envKey, defaultValue string) (string, error) {
+	if optKey == "" {
+		return "", fmt.Errorf("optKey is empty")
+	}
+
 	if optValue != "" {
 		return optValue, nil
 	}
