@@ -8,6 +8,20 @@ import (
 	"cloud.google.com/go/bigquery"
 )
 
+func Test_readFile(t *testing.T) {
+	var (
+		noSuchFileOrDirectoryPath = "/no/such/file/or/directory"
+		probablyExistsPath        = "go.mod"
+	)
+	if _, err := readFile(noSuchFileOrDirectoryPath); err == nil {
+		t.Fail()
+	}
+
+	if _, err := readFile(probablyExistsPath); err != nil {
+		t.Fail()
+	}
+}
+
 func Test_getOptOrEnvOrDefault(t *testing.T) {
 	var (
 		empty            = ""
