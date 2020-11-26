@@ -344,6 +344,7 @@ func bigqueryFieldTypeToGoType(bigqueryFieldType bigquery.FieldType) (goType str
 
 	// NOTE(djeeno): ref. https://github.com/googleapis/google-cloud-go/blob/f37f118c87d4d0a77a554515a430ae06e5852294/bigquery/schema.go#L368-L371
 	case bigquery.RecordFieldType:
+		// TODO(djeeno): support bigquery.RecordFieldType
 		return "", "", fmt.Errorf("bigquery.FieldType not supported. bigquery.FieldType=%s", bigqueryFieldType)
 
 	// NOTE(djeeno): ref. https://github.com/googleapis/google-cloud-go/blob/f37f118c87d4d0a77a554515a430ae06e5852294/bigquery/schema.go#L394-L399
