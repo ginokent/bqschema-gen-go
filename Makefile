@@ -20,6 +20,7 @@ generate: run ## generate
 test:  ## go test
 	go test -v -race -cover -coverprofile=coverage.out ./...
 
-test2: test ## open coverage.html
+test2:  ## open coverage.html
+	go test -v -race -cover -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 	${OPEN_CMD} coverage.html
