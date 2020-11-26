@@ -111,19 +111,17 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("getAllTables: %w", err)
 	}
 
-	importPackagesUniq := make(map[string]bool)
-
+	var importPackages []string
 	for i, table := range tables {
-		structCode, packages, err := generateTableSchemaCode(ctx, table)
+		structCode, pkgs, err := generateTableSchemaCode(ctx, table)
 		if err != nil {
 			log.Printf("generateTableSchemaCode: %v\n", err)
 			continue
 		}
 
-		for _, pkg := range packages {
-			importPackagesUniq[pkg] = true
+		if len(pkgs) > 0 {
+			importPackages = append(importPackages, pkgs...)
 		}
-
 		tail = tail + structCode
 
 		if !isLastLoop(i, len(tables)) {
@@ -131,33 +129,10 @@ func Run(ctx context.Context) error {
 		}
 	}
 
-	// TODO(djeeno): import packages
-	var importsCode string
-	switch {
-	case len(importPackagesUniq) == 0:
-		importsCode = ""
-	case len(importPackagesUniq) == 1:
-		for pkg := range importPackagesUniq {
-			importsCode = "import \"" + pkg + "\"\n"
-		}
-		importsCode = importsCode + "\n"
-	case len(importPackagesUniq) >= 2:
-		importsCode = "import (\n"
-		importPackagesForSort := make([]string, len(importPackagesUniq))
-		idx := 0
-		for pkg := range importPackagesUniq {
-			importPackagesForSort[idx] = pkg
-			idx++
-		}
-		sort.Strings(importPackagesForSort)
-		for _, pkg := range importPackagesForSort {
-			importsCode = importsCode + "\t\"" + pkg + "\"\n"
-		}
-		importsCode = importsCode + ")\n\n"
-	}
+	importCode := generateImportPackagesCode(importPackages)
 
 	// NOTE(djeeno): combine
-	generatedCode := generatedContentHeader + importsCode + tail
+	generatedCode := generatedContentHeader + importCode + tail
 
 	if err := mkdirIfNotExist(filepath.Dir(filePath)); err != nil {
 		return fmt.Errorf("mkdirIfNotExist: %w", err)
@@ -180,7 +155,40 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
-func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (generatedCode string, packages []string, err error) {
+func generateImportPackagesCode(importPackages []string) (generatedCode string) {
+	importPackagesUniq := make(map[string]bool)
+
+	for _, pkg := range importPackages {
+		importPackagesUniq[pkg] = true
+	}
+
+	switch {
+	case len(importPackagesUniq) == 0:
+		generatedCode = ""
+	case len(importPackagesUniq) == 1:
+		for pkg := range importPackagesUniq {
+			generatedCode = "import \"" + pkg + "\"\n"
+		}
+		generatedCode = generatedCode + "\n"
+	case len(importPackagesUniq) >= 2:
+		generatedCode = "import (\n"
+		importPackagesForSort := make([]string, len(importPackagesUniq))
+		idx := 0
+		for pkg := range importPackagesUniq {
+			importPackagesForSort[idx] = pkg
+			idx++
+		}
+		sort.Strings(importPackagesForSort)
+		for _, pkg := range importPackagesForSort {
+			generatedCode = generatedCode + "\t\"" + pkg + "\"\n"
+		}
+		generatedCode = generatedCode + ")\n\n"
+	}
+
+	return generatedCode
+}
+
+func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (generatedCode string, importPackages []string, err error) {
 	if len(table.TableID) == 0 {
 		return "", nil, fmt.Errorf("*bigquery.Table.TableID is empty. *bigquery.Table struct dump: %#v", table)
 	}
@@ -223,13 +231,13 @@ func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (genera
 			return "", nil, fmt.Errorf("bigqueryFieldTypeToGoType: %w", err)
 		}
 		if pkg != "" {
-			packages = append(packages, pkg)
+			importPackages = append(importPackages, pkg)
 		}
 		generatedCode = generatedCode + fmt.Sprintf(format, capitalizeInitial(schema.Name), goTypeStr, schema.Name)
 	}
 	generatedCode = generatedCode + "}\n"
 
-	return generatedCode, packages, nil
+	return generatedCode, importPackages, nil
 }
 
 func mkdirIfNotExist(path string) error {
