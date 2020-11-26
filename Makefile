@@ -14,5 +14,6 @@ run:  ## go run
 
 generate: run ## generate
 
+.PHONY: test
 test:  ## go test
 	go test -v -race -cover -coverprofile=coverage.out ./...

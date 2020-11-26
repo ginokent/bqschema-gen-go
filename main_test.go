@@ -12,6 +12,7 @@ func Test_newGoogleApplicationCredentials(t *testing.T) {
 	var (
 		noSuchFileOrDirectoryPath = "/no/such/file/or/directory"
 		cannotJSONMarshalPath     = "go.mod"
+		path                      = "test/serviceaccountnotfound@projectnotfound.iam.gserviceaccount.com.json"
 	)
 
 	if _, err := newGoogleApplicationCredentials(noSuchFileOrDirectoryPath); err == nil {
@@ -19,6 +20,10 @@ func Test_newGoogleApplicationCredentials(t *testing.T) {
 	}
 
 	if _, err := newGoogleApplicationCredentials(cannotJSONMarshalPath); err == nil {
+		t.Fail()
+	}
+
+	if _, err := newGoogleApplicationCredentials(path); err != nil {
 		t.Fail()
 	}
 }
