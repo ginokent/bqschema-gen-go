@@ -15,7 +15,8 @@ func Test_bigqueryFieldTypeToGoType(t *testing.T) {
 		bigquery.FloatFieldType:     reflect.Float64.String(),
 		bigquery.BooleanFieldType:   reflect.Bool.String(),
 		bigquery.TimestampFieldType: typeOfGoTime.String(),
-		// TODO(djeeno): bigquery.RecordFieldType: "",
+		// TODO(djeeno): support bigquery.RecordFieldType
+		//bigquery.RecordFieldType: "",
 		bigquery.DateFieldType:      typeOfDate.String(),
 		bigquery.TimeFieldType:      typeOfTime.String(),
 		bigquery.DateTimeFieldType:  typeOfDateTime.String(),
