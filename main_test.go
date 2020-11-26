@@ -30,10 +30,15 @@ func Test_newGoogleApplicationCredentials(t *testing.T) {
 
 func Test_readFile(t *testing.T) {
 	var (
-		noSuchFileOrDirectoryPath = "/no/such/file/or/directory"
-		probablyExistsPath        = "go.mod"
+		errNoSuchFileOrDirectoryPath = "/no/such/file/or/directory"
+		errIsADirectory              = "."
+		probablyExistsPath           = "go.mod"
 	)
-	if _, err := readFile(noSuchFileOrDirectoryPath); err == nil {
+	if _, err := readFile(errNoSuchFileOrDirectoryPath); err == nil {
+		t.Fail()
+	}
+
+	if _, err := readFile(errIsADirectory); err == nil {
 		t.Fail()
 	}
 
