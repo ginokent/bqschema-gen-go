@@ -8,6 +8,21 @@ import (
 	"cloud.google.com/go/bigquery"
 )
 
+func Test_newGoogleApplicationCredentials(t *testing.T) {
+	var (
+		noSuchFileOrDirectoryPath = "/no/such/file/or/directory"
+		cannotJSONMarshalPath     = "go.mod"
+	)
+
+	if _, err := newGoogleApplicationCredentials(noSuchFileOrDirectoryPath); err == nil {
+		t.Fail()
+	}
+
+	if _, err := newGoogleApplicationCredentials(cannotJSONMarshalPath); err == nil {
+		t.Fail()
+	}
+}
+
 func Test_readFile(t *testing.T) {
 	var (
 		noSuchFileOrDirectoryPath = "/no/such/file/or/directory"
