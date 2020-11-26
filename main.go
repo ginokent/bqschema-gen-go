@@ -11,9 +11,7 @@ import (
 	"log"
 	"math/big"
 	"os"
-	"path/filepath"
 	"reflect"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -247,13 +245,6 @@ func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (genera
 	return generatedCode, importPackages, nil
 }
 
-func mkdirIfNotExist(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return os.Mkdir(path, 0755)
-	}
-	return nil
-}
-
 func getAllTables(ctx context.Context, c *bigquery.Client, datasetID string) (tables []*bigquery.Table, err error) {
 	tableIterator := c.Dataset(datasetID).Tables(ctx)
 	for {
@@ -367,47 +358,4 @@ func bigqueryFieldTypeToGoType(bigqueryFieldType bigquery.FieldType) (goType str
 	default:
 		return "", "", fmt.Errorf("bigquery.FieldType not supported. bigquery.FieldType=%s", bigqueryFieldType)
 	}
-}
-
-// resolveEnvs resolves environment variables from the arguments passed as environment variable names.
-func resolveEnvs(keys ...string) (map[string]string, error) {
-	envs := map[string]string{}
-
-	for _, key := range keys {
-		envs[key] = os.Getenv(key)
-		if envs[key] == "" {
-			return nil, fmt.Errorf("resolveEnvs: environment variable %s is empty", key)
-		}
-	}
-
-	return envs, nil
-}
-
-// mergeMap merge map[string]string
-func mergeMap(sideToBeMerged, sideToMerge map[string]string) map[string]string {
-	m := map[string]string{}
-
-	for k, v := range sideToBeMerged {
-		m[k] = v
-	}
-	for k, v := range sideToMerge {
-		m[k] = v
-	}
-	return (m)
-}
-
-func funcName() string {
-	pc, _, _, ok := runtime.Caller(1)
-	if !ok {
-		return ""
-	}
-	return runtime.FuncForPC(pc).Name()
-}
-
-func caller() string {
-	pc, file, line, ok := runtime.Caller(1)
-	if !ok {
-		return fmt.Sprintf("%s[%s:%d]", "null", "null", 0)
-	}
-	return fmt.Sprintf("%s[%s:%d]", runtime.FuncForPC(pc).Name(), filepath.Base(file), line)
 }
