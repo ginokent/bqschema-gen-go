@@ -36,7 +36,7 @@ const (
 	envNameOutputFile                   = "OUTPUT_FILE"
 	// defaultValue
 	defaultValueEmpty      = ""
-	defaultValueOutputFile = "bqtableschema/bqtableschema.generated.go"
+	defaultValueOutputFile = "bqtableschema.generated.go"
 )
 
 var (
@@ -144,9 +144,6 @@ func Run(ctx context.Context) error {
 	// NOTE(djeeno): combine
 	generatedCode := generatedContentHeader + importCode + tail
 
-	if err := mkdirIfNotExist(filepath.Dir(filePath)); err != nil {
-		return fmt.Errorf("mkdirIfNotExist: %w", err)
-	}
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return fmt.Errorf("os.OpenFile: %w", err)
