@@ -7,6 +7,22 @@ import (
 	"cloud.google.com/go/bigquery"
 )
 
+func Test_capitalizeInitial(t *testing.T) {
+	var (
+		empty          = ""
+		notCapitalized = "a"
+		capitalized    = "A"
+	)
+
+	if capitalizeInitial(empty) != empty {
+		t.Fail()
+	}
+
+	if capitalizeInitial(notCapitalized) != capitalized {
+		t.Fail()
+	}
+}
+
 func Test_bigqueryFieldTypeToGoType(t *testing.T) {
 	supportedBigqueryFieldTypes := map[bigquery.FieldType]string{
 		bigquery.StringFieldType:    reflect.String.String(),
