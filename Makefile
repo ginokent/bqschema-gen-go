@@ -13,3 +13,6 @@ run:  ## go run
 	go run main.go
 
 generate: run ## generate
+
+test:  ## go test
+	go test -v -race -cover -coverprofile=coverage.out ./...
