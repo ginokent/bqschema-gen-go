@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 
 	"cloud.google.com/go/bigquery"
@@ -8,40 +9,40 @@ import (
 
 func Test_bigqueryFieldTypeToGoType(t *testing.T) {
 	supportedBigqueryFieldTypes := map[bigquery.FieldType]string{
-		bigquery.StringFieldType:    typeOfString,
-		bigquery.BytesFieldType:     typeOfByteSlice,
-		bigquery.IntegerFieldType:   typeOfInt64,
-		bigquery.FloatFieldType:     typeOfFloat64,
-		bigquery.BooleanFieldType:   typeOfBool,
-		bigquery.TimestampFieldType: typeOfGoTime,
-		//bigquery.RecordFieldType: ,
-		bigquery.DateFieldType:      typeOfDate,
-		bigquery.TimeFieldType:      typeOfTime,
-		bigquery.DateTimeFieldType:  typeOfDateTime,
-		bigquery.NumericFieldType:   typeOfRat,
-		bigquery.GeographyFieldType: typeOfString,
+		bigquery.StringFieldType:    reflect.String.String(),
+		bigquery.BytesFieldType:     typeOfByteSlice.String(),
+		bigquery.IntegerFieldType:   reflect.Int64.String(),
+		bigquery.FloatFieldType:     reflect.Float64.String(),
+		bigquery.BooleanFieldType:   reflect.Bool.String(),
+		bigquery.TimestampFieldType: typeOfGoTime.String(),
+		//bigquery.RecordFieldType: "",
+		bigquery.DateFieldType:      typeOfDate.String(),
+		bigquery.TimeFieldType:      typeOfTime.String(),
+		bigquery.DateTimeFieldType:  typeOfDateTime.String(),
+		bigquery.NumericFieldType:   typeOfRat.String(),
+		bigquery.GeographyFieldType: reflect.String.String(),
 	}
 
 	unsupportedBigqueryFieldTypes := map[bigquery.FieldType]string{
 		bigquery.RecordFieldType: "",
 	}
 
-	for fieldType, typeString := range supportedBigqueryFieldTypes {
-		goType, _, err := bigqueryFieldTypeToGoType(fieldType)
+	for bigqueryFieldType, typeOf := range supportedBigqueryFieldTypes {
+		goType, _, err := bigqueryFieldTypeToGoType(bigqueryFieldType)
 		if err != nil {
 			t.Fail()
 		}
-		if goType != typeString {
+		if goType != typeOf {
 			t.Fail()
 		}
 	}
 
-	for fieldType, typeString := range unsupportedBigqueryFieldTypes {
-		goType, _, err := bigqueryFieldTypeToGoType(fieldType)
+	for bigqueryFieldType, typeOf := range unsupportedBigqueryFieldTypes {
+		goType, _, err := bigqueryFieldTypeToGoType(bigqueryFieldType)
 		if err == nil {
 			t.Fail()
 		}
-		if goType != typeString {
+		if goType != typeOf {
 			t.Fail()
 		}
 
