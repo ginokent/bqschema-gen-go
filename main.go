@@ -334,7 +334,9 @@ func bigqueryFieldTypeToGoType(bigqueryFieldType bigquery.FieldType) (goType str
 	case bigquery.TimestampFieldType:
 		return typeOfGoTime.String(), typeOfGoTime.PkgPath(), nil
 	case bigquery.NumericFieldType:
-		return typeOfRat.String(), typeOfRat.PkgPath(), nil
+		// NOTE(djeeno): The *T (pointer type) does not return the package path.
+		//               ref. https://github.com/golang/go/blob/f0ff6d4a67ec9a956aa655d487543da034cf576b/src/reflect/type.go#L83
+		return typeOfRat.String(), reflect.TypeOf(big.Rat{}).PkgPath(), nil
 
 	// NOTE(djeeno): ref. https://github.com/googleapis/google-cloud-go/blob/f37f118c87d4d0a77a554515a430ae06e5852294/bigquery/schema.go#L362-L364
 	case bigquery.IntegerFieldType:
