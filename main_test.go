@@ -7,30 +7,43 @@ import (
 )
 
 func Test_bigqueryFieldTypeToGoType(t *testing.T) {
-	supportedBigqueryFieldTypes := map[bigquery.FieldType]inter{}{
-		bigquery.StringFieldType,
-		string(bigquery.BytesFieldType),
-		string(bigquery.IntegerFieldType),
-		string(bigquery.FloatFieldType),
-		string(bigquery.BooleanFieldType),
-		string(bigquery.TimestampFieldType),
-		//string(bigquery.RecordFieldType),
-		string(bigquery.DateFieldType),
-		string(bigquery.TimeFieldType),
-		string(bigquery.DateTimeFieldType),
-		string(bigquery.NumericFieldType),
-		string(bigquery.GeographyFieldType),
+	supportedBigqueryFieldTypes := map[bigquery.FieldType]string{
+		bigquery.StringFieldType:    typeOfString,
+		bigquery.BytesFieldType:     typeOfByteSlice,
+		bigquery.IntegerFieldType:   typeOfInt64,
+		bigquery.FloatFieldType:     typeOfFloat64,
+		bigquery.BooleanFieldType:   typeOfBool,
+		bigquery.TimestampFieldType: typeOfGoTime,
+		//bigquery.RecordFieldType: ,
+		bigquery.DateFieldType:      typeOfDate,
+		bigquery.TimeFieldType:      typeOfTime,
+		bigquery.DateTimeFieldType:  typeOfDateTime,
+		bigquery.NumericFieldType:   typeOfRat,
+		bigquery.GeographyFieldType: typeOfString,
 	}
 
-	unsupportedBigqueryFieldTypes := []string{
-		string(bigquery.RecordFieldType),
+	unsupportedBigqueryFieldTypes := map[bigquery.FieldType]string{
+		bigquery.RecordFieldType: "",
 	}
 
-	for _, fieldType := range supportedBigqueryFieldTypes {
-		bigqueryFieldTypeToGoType(fieldType)
+	for fieldType, typeString := range supportedBigqueryFieldTypes {
+		goType, _, err := bigqueryFieldTypeToGoType(fieldType)
+		if err != nil {
+			t.Fail()
+		}
+		if goType != typeString {
+			t.Fail()
+		}
 	}
 
-	for _, fieldType := range unsupportedBigqueryFieldTypes {
+	for fieldType, typeString := range unsupportedBigqueryFieldTypes {
+		goType, _, err := bigqueryFieldTypeToGoType(fieldType)
+		if err == nil {
+			t.Fail()
+		}
+		if goType != typeString {
+			t.Fail()
+		}
 
 	}
 }
