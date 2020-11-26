@@ -24,7 +24,8 @@ func Test_bigqueryFieldTypeToGoType(t *testing.T) {
 	}
 
 	unsupportedBigqueryFieldTypes := map[bigquery.FieldType]string{
-		bigquery.RecordFieldType: "",
+		bigquery.RecordFieldType:               "",
+		bigquery.FieldType("unknownFieldType"): "",
 	}
 
 	for bigqueryFieldType, typeOf := range supportedBigqueryFieldTypes {
