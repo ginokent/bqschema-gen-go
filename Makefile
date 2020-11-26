@@ -8,3 +8,8 @@ help:  ## display this documents
 
 clean:  ## clean up
 	-rm -rf bqtableschema/
+
+run:  ## go run
+	go run main.go
+
+generate: run ## generate
