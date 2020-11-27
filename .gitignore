@@ -1,3 +1,5 @@
 .idea/
-coverage.out
+_test/
 coverage.html
+coverage.out
+coverage.txt
