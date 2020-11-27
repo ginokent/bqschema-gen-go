@@ -1,4 +1,4 @@
-name: ci on pull_request
+name: main
 on:
   push:
     branches:
