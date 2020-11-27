@@ -1,34 +1,36 @@
-name: ci
+name: ci on pull_request
 on: pull_request
 
 jobs:
   ci:
-    name: ci
+    name: CI
     runs-on: ubuntu-20.04
 
     env:
       REPOSITORY_PATH: src/github.com/djeeno/bqtableschema
 
     steps:
-      - name: actions/checkout@v2
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
         with:
           path: ${{ env.REPOSITORY_PATH }}
 
-      - name: actions/setup-go@v1
-        uses: actions/setup-go@v1
+      - uses: actions/setup-go@v1
         with:
           go-version: 1.15
 
       # https://github.com/actions/cache/blob/main/examples.md#go---modules
-      - name: actions/cache@v2
-        uses: actions/cache@v2
+      - uses: actions/cache@v2
         with:
           path: ${{ github.workspace }}/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
             ${{ runner.os }}-go-
+
+      - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          export_default_credentials: true
 
       - name: make test
         env:
@@ -37,16 +39,14 @@ jobs:
           APP_ENV: test
         working-directory: ${{ env.REPOSITORY_PATH }}
         run: |
-          bash -c "GOOGLE_APPLICATION_CREDENTIALS=<(echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}') make cover"
+          make cover
 
-      - name: actions/upload-artifact@v2
-        uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v2
         with:
           name: coverage.html
           path: ${{ env.REPOSITORY_PATH }}/_test/coverage.html
 
-      - name: codecov/codecov-action@v1
-        uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: ${{ env.REPOSITORY_PATH }}
