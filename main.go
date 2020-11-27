@@ -30,6 +30,7 @@ const (
 	optNameOutputFile = "output"
 	// envName
 	envNameGoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
+	envNameGCloudProjectID              = "GCLOUD_PROJECT_ID"
 	envNameBigQueryDataset              = "BIGQUERY_DATASET"
 	envNameOutputFile                   = "OUTPUT_FILE"
 	// defaultValue
@@ -85,7 +86,12 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("newGoogleApplicationCredentials: %w", err)
 	}
 
-	client, err := bigquery.NewClient(ctx, getProjectID(optValueProjectID, cred))
+	project, err := getOptOrEnvOrDefault(optNameProjectID, optValueProjectID, envNameGCloudProjectID, cred.ProjectID)
+	if err != nil {
+		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
+	}
+
+	client, err := bigquery.NewClient(ctx, project)
 	if err != nil {
 		return fmt.Errorf("bigquery.NewClient: %w", err)
 	}
@@ -161,13 +167,6 @@ package bqtableschema
 	}
 
 	return genImports, nil
-}
-
-func getProjectID(optValueProjectID string, cred *googleApplicationCredentials) (projectID string) {
-	if optValueProjectID != "" {
-		return optValueProjectID
-	}
-	return cred.ProjectID
 }
 
 func generateImportPackagesCode(importPackages []string) (generatedCode string) {
