@@ -21,6 +21,6 @@ test:  ## go test
 	go test -v -race -cover -coverprofile=coverage.out ./...
 
 test2:  ## open coverage.html
-	go test -v -race -cover -coverprofile=coverage.out ./...
+	go test -v -race -cover -coverprofile=coverage.out ./... || true
 	go tool cover -html=coverage.out -o coverage.html
 	${OPEN_CMD} coverage.html

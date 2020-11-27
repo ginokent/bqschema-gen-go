@@ -4,14 +4,123 @@ import (
 	"context"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"cloud.google.com/go/bigquery"
+	"google.golang.org/api/iterator"
 )
 
 const (
 	testGoogleApplicationCredentials = "test/serviceaccountnotfound@projectnotfound.iam.gserviceaccount.com.json"
 )
+
+func Test_generateTableSchemaCode_OK(t *testing.T) {
+	var (
+		okCtx       = context.Background()
+		okProjectID = "bigquery-public-data"
+		okDatasetID = "hacker_news"
+	)
+
+	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+		t.Log("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		return
+	}
+
+	var (
+		ngClient, _     = bigquery.NewClient(okCtx, okProjectID)
+		ngTableIterator = ngClient.Dataset(okDatasetID).Tables(okCtx)
+	)
+
+	for {
+		table, err := ngTableIterator.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			t.Log(err)
+			t.Fail()
+		}
+		if _, _, err := generateTableSchemaCode(okCtx, table); err != nil {
+			t.Log(err)
+			t.Fail()
+		}
+	}
+}
+
+func Test_generateTableSchemaCode_NG_1(t *testing.T) {
+	var (
+		ngCtx   = context.Background()
+		ngTable = &bigquery.Table{
+			ProjectID: "",
+			DatasetID: "",
+			TableID:   "",
+		}
+	)
+	if _, _, err := generateTableSchemaCode(ngCtx, ngTable); err == nil {
+		t.Log(err)
+		t.Fail()
+	}
+}
+
+func Test_generateTableSchemaCode_NG_2(t *testing.T) {
+	var (
+		ngCtx       = context.Background()
+		ngProjectID = "bigquery-public-data"
+		ngDatasetID = "samples"
+	)
+
+	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+		t.Log("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		return
+	}
+
+	var (
+		ngClient, _ = bigquery.NewClient(ngCtx, ngProjectID)
+		ngTable, _  = ngClient.Dataset(ngDatasetID).Tables(ngCtx).Next()
+	)
+
+	ngTable.ProjectID = "projectnotfound"
+	if _, _, err := generateTableSchemaCode(ngCtx, ngTable); err == nil {
+		t.Log(err)
+		t.Fail()
+	}
+}
+
+func Test_generateTableSchemaCode_NG_3(t *testing.T) {
+	var (
+		ngCtx       = context.Background()
+		ngProjectID = "bigquery-public-data"
+		ngDatasetID = "samples"
+	)
+
+	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+		t.Log("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		return
+	}
+
+	var (
+		ngClient, _     = bigquery.NewClient(ngCtx, ngProjectID)
+		ngTableIterator = ngClient.Dataset(ngDatasetID).Tables(ngCtx)
+	)
+
+	for {
+		table, err := ngTableIterator.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			t.Log(err)
+			t.Fail()
+		}
+		if _, _, err := generateTableSchemaCode(ngCtx, table); err != nil {
+			if !strings.Contains(err.Error(), "bigquery.FieldType not supported.") {
+				t.Log(err)
+				t.Fail()
+			}
+		}
+	}
+}
 
 func Test_getAllTables_OK(t *testing.T) {
 	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
