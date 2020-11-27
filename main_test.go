@@ -176,28 +176,6 @@ func Test_getAllTables_NG(t *testing.T) {
 	return
 }
 
-func Test_newGoogleApplicationCredentials(t *testing.T) {
-	var (
-		noSuchFileOrDirectoryPath = "/no/such/file/or/directory"
-		cannotJSONMarshalPath     = "go.mod"
-	)
-
-	if _, err := newGoogleApplicationCredentials(noSuchFileOrDirectoryPath); err == nil {
-		t.Log(err)
-		t.Fail()
-	}
-
-	if _, err := newGoogleApplicationCredentials(cannotJSONMarshalPath); err == nil {
-		t.Log(err)
-		t.Fail()
-	}
-
-	if _, err := newGoogleApplicationCredentials(testGoogleApplicationCredentials); err != nil {
-		t.Log(err)
-		t.Fail()
-	}
-}
-
 func Test_readFile(t *testing.T) {
 	var (
 		errNoSuchFileOrDirectoryPath = "/no/such/file/or/directory"

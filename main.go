@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"go/format"
@@ -74,21 +73,21 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
+	project, err := getOptOrEnvOrDefault(optNameProjectID, optValueProjectID, envNameGCloudProjectID, "")
+	if err != nil {
+		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
+	}
+
+	dataset, err := getOptOrEnvOrDefault(optNameDataset, optValueDataset, envNameBigQueryDataset, "")
+	if err != nil {
+		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
+	}
+
 	// set GOOGLE_APPLICATION_CREDENTIALS for Google Cloud SDK
 	if os.Getenv(envNameGoogleApplicationCredentials) != keyfile {
 		if err := os.Setenv(envNameGoogleApplicationCredentials, keyfile); err != nil {
 			return fmt.Errorf("os.Setenv: %w", err)
 		}
-	}
-
-	cred, err := newGoogleApplicationCredentials(keyfile)
-	if err != nil {
-		return fmt.Errorf("newGoogleApplicationCredentials: %w", err)
-	}
-
-	project, err := getOptOrEnvOrDefault(optNameProjectID, optValueProjectID, envNameGCloudProjectID, "")
-	if err != nil {
-		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
 	client, err := bigquery.NewClient(ctx, project)
@@ -100,11 +99,6 @@ func Run(ctx context.Context) error {
 			log.Printf("client.Close: %v\n", err)
 		}
 	}()
-
-	dataset, err := getOptOrEnvOrDefault(optNameDataset, optValueDataset, envNameBigQueryDataset, "")
-	if err != nil {
-		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
-	}
 
 	generatedCode, err := Generate(ctx, client, dataset)
 	if err != nil {
@@ -241,33 +235,6 @@ func getAllTables(ctx context.Context, client *bigquery.Client, datasetID string
 		tables = append(tables, table)
 	}
 	return tables, nil
-}
-
-type googleApplicationCredentials struct {
-	Type                    string `json:"type"`
-	ProjectID               string `json:"project_id"`
-	PrivateKeyID            string `json:"private_key_id"`
-	PrivateKey              string `json:"private_key"`
-	ClientEmail             string `json:"client_email"`
-	ClientID                string `json:"client_id"`
-	AuthURI                 string `json:"auth_uri"`
-	TokenURI                string `json:"token_uri"`
-	AuthProviderX509CertURL string `json:"auth_provider_x509_cert_url"`
-	ClientX509CertURL       string `json:"client_x509_cert_url"`
-}
-
-func newGoogleApplicationCredentials(path string) (*googleApplicationCredentials, error) {
-	bytea, err := readFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("ioutil.ReadAll: %w", err)
-	}
-
-	cred := &googleApplicationCredentials{}
-	if err := json.Unmarshal(bytea, cred); err != nil {
-		return nil, fmt.Errorf("json.Unmarshal: %w", err)
-	}
-
-	return cred, nil
 }
 
 func readFile(path string) ([]byte, error) {
