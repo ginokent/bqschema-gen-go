@@ -86,7 +86,7 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("newGoogleApplicationCredentials: %w", err)
 	}
 
-	project, err := getOptOrEnvOrDefault(optNameProjectID, optValueProjectID, envNameGCloudProjectID, cred.ProjectID)
+	project, err := getOptOrEnvOrDefault(optNameProjectID, optValueProjectID, envNameGCloudProjectID, "")
 	if err != nil {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
