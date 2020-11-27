@@ -114,10 +114,14 @@ func Test_generateTableSchemaCode_NG_3(t *testing.T) {
 			t.Fail()
 		}
 		if _, _, err := generateTableSchemaCode(ngCtx, table); err != nil {
+			// NOTE(djeeno): "bigquery.FieldType not supported." 以外のエラーが出たら Fail
 			if !strings.Contains(err.Error(), "bigquery.FieldType not supported.") {
 				t.Log(err)
 				t.Fail()
 			}
+			// NOTE(djeeno): ここまで来たら、確認したいことは確認済み。
+			// ref. https://github.com/djeeno/bqtableschema/blob/260524ce0ae2dd5bdcbdd57446cdd8c140326ca4/main.go#L212
+			return
 		}
 	}
 }
