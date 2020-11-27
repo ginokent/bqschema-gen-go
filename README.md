@@ -1,7 +1,7 @@
 # bqtableschema
 BigQuery table schema struct generator
 
-![.github/workflows/ci.yaml](https://github.com/djeeno/bqtableschema/workflows/.github/workflows/ci.yaml/badge.svg)
+![main](https://github.com/djeeno/bqtableschema/workflows/main/badge.svg)
 
 ## generate
 ```console
