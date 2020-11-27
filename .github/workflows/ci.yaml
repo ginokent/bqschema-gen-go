@@ -35,7 +35,9 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v0.2.0
         with:
-          service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}                        ## NOTE(djeeno): JSON の中の project_id に相当。 GitHub Actions のログに出ないようにするため
+          service_account_email: ${{ secrets.GCLOUD_SERVICE_ACCOUNT_EMAIL }}  ## NOTE(djeeno): JSON の中の client_email に相当。 GitHub Actions のログに出ないようにするため
+          service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}  ## NOTE(djeeno): JSON の中身すべてに相当。
           export_default_credentials: true
 
       - name: Run make cover
