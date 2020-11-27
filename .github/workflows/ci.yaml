@@ -32,7 +32,7 @@ jobs:
           service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
           export_default_credentials: true
 
-      - name: make test
+      - name: Run make cover
         env:
           GO111MODULE: auto
           GOPATH: ${{ github.workspace }}
