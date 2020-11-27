@@ -37,6 +37,7 @@ test:  ## go test
 cover:  ## open coverage.html
 	# test
 	${TEST_CMD} || true
+	# cover
 	go tool cover -html=${COVERAGE_FILE} -o ${COVERAGE_HTML}
 	${OPEN_CMD} ${COVERAGE_HTML}
 
