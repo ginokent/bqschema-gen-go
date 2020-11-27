@@ -17,6 +17,17 @@ help:  ## display this documents
 init:  ## init
 	@mkdir -p ${TEST_DIR}
 
+.PHONY: lint
+lint:  ## go fmt and go vet
+	# tidy
+	go mod tidy
+	git diff --exit-code ${ROOT_DIR}/go.mod
+	git diff --exit-code ${ROOT_DIR}/go.sum
+	# fmt
+	go fmt ./...
+	# vet
+	go vet ./...
+
 .PHONY: run
 run:  ## go run
 	go run ${MAIN_DIR}
@@ -30,3 +41,7 @@ cover: init ## open coverage.html
 	${TEST_CMD} || true
 	go tool cover -html=${COVERAGE_FILE} -o ${COVERAGE_HTML}
 	${OPEN_CMD} ${COVERAGE_HTML}
+
+.PHONY: ci
+ci: lint test ## for CI
+
