@@ -37,7 +37,7 @@ jobs:
           APP_ENV: test
         working-directory: ${{ env.REPOSITORY_PATH }}
         run: |
-          make cover
+          bash -c "GOOGLE_APPLICATION_CREDENTIALS=<(echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}') make cover"
 
       - name: actions/upload-artifact@v2
         uses: actions/upload-artifact@v2
