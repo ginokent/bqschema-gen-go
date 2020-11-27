@@ -18,6 +18,7 @@ import (
 
 	"cloud.google.com/go/bigquery"
 	"cloud.google.com/go/civil"
+	"golang.org/x/tools/imports"
 	"google.golang.org/api/iterator"
 )
 
@@ -147,12 +148,19 @@ package bqtableschema
 	// NOTE(djeeno): combine
 	code := head + importCode + tail
 
-	gen, err := format.Source([]byte(code))
+	gen := []byte(code)
+
+	genFmt, err := format.Source(gen)
 	if err != nil {
 		return nil, fmt.Errorf("format.Source: %w", err)
 	}
 
-	return gen, nil
+	genImports, err := imports.Process("", genFmt, nil)
+	if err != nil {
+		return nil, fmt.Errorf("imports.Process: %w", err)
+	}
+
+	return genImports, nil
 }
 
 func getProjectID(optValueProjectID string, cred *googleApplicationCredentials) (projectID string) {
