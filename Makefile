@@ -41,5 +41,5 @@ cover:  ## open coverage.html
 	${OPEN_CMD} ${COVERAGE_HTML}
 
 .PHONY: ci
-ci: lint test ## for CI
+ci: lint cover ## for CI
 
