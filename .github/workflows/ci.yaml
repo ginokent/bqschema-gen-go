@@ -41,7 +41,7 @@ jobs:
           service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}  ## NOTE(djeeno): JSON の中身すべてに相当。
           export_default_credentials: true
 
-      - name: Run make cover
+      - name: Run make ci
         env:
           GO111MODULE: auto
           GOPATH: ${{ github.workspace }}

@@ -25,14 +25,17 @@ lint:  ## go fmt and go vet
 
 .PHONY: run
 run:  ## go run
+	# run
 	go run ${MAIN_DIR}
 
 .PHONY: test
 test:  ## go test
+	# test
 	${TEST_CMD}
 
 .PHONY: cover
 cover:  ## open coverage.html
+	# test
 	${TEST_CMD} || true
 	go tool cover -html=${COVERAGE_FILE} -o ${COVERAGE_HTML}
 	${OPEN_CMD} ${COVERAGE_HTML}
