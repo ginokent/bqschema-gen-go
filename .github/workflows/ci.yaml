@@ -48,7 +48,7 @@ jobs:
           APP_ENV: test
         working-directory: ${{ env.REPOSITORY_PATH }}
         run: |
-          make cover
+          make ci
 
       - uses: actions/upload-artifact@v2
         with:
