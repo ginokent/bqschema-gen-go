@@ -13,12 +13,12 @@ jobs:
     runs-on: ubuntu-20.04
 
     env:
-      REPOSITORY_PATH: src/github.com/djeeno/bqtableschema
+      CHECKOUT_PATH: .
 
     steps:
       - uses: actions/checkout@v2
         with:
-          path: ${{ env.REPOSITORY_PATH }}
+          path: ${{ env.CHECKOUT_PATH }}
 
       - uses: actions/setup-go@v1
         with:
@@ -45,16 +45,16 @@ jobs:
           GO111MODULE: auto
           GOPATH: ${{ github.workspace }}
           APP_ENV: test
-        working-directory: ${{ env.REPOSITORY_PATH }}
+        working-directory: ${{ env.CHECKOUT_PATH }}
         run: |
           make cover
 
       - uses: actions/upload-artifact@v2
         with:
           name: coverage.html
-          path: ${{ env.REPOSITORY_PATH }}/_test/coverage.html
+          path: ${{ env.CHECKOUT_PATH }}/coverage.html
 
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: ${{ env.REPOSITORY_PATH }}
+          directory: ${{ env.CHECKOUT_PATH }}
