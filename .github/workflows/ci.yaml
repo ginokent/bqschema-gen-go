@@ -14,7 +14,7 @@ jobs:
 
     env:
       REPOSITORY_PATH: src/github.com/djeeno/bqtableschema
-      COVERAGE_HTML: ${{ env.REPOSITORY_PATH }}/coverage.html
+      COVERAGE_HTML: src/github.com/djeeno/bqtableschema/coverage.html
 
     steps:
       - uses: actions/checkout@v2
