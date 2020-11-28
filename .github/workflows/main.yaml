@@ -1,16 +1,9 @@
 name: main
 on:
   workflow_dispatch:
-    inputs: {}
   push:
     branches:
       - main
-      - develop
-    paths:
-      - "**"
-      - "!.gitignore"
-      - "!LICENSE"
-      - "!README.md"
   pull_request:
     branches:
       - main
