@@ -1,17 +1,17 @@
 name: main
 on:
-  push:
-    branches:
-      - main
-      - develop
-  pull_request:
-    branches:
-      - main
+  #push:
+  #  branches:
+  #    - main
+  #    - develop
+  #pull_request:
+  #  branches:
+  #    - main
   # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#workflow_dispatch
   workflow_dispatch:
-  # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#schedule
-  schedule:
-    - cron: '30 * * * *'
+  ## NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#schedule
+  #schedule:
+  #  - cron: '30 * * * *'
 
 env:
   REPOSITORY_PATH: src/github.com/djeeno/bqtableschema
