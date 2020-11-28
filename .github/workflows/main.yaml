@@ -1,6 +1,5 @@
 name: main
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -8,6 +7,12 @@ on:
   pull_request:
     branches:
       - main
+  # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#workflow_dispatch
+  workflow_dispatch:
+  # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#schedule
+  schedule:
+    - cron:  '30 * * * *'
+
 
 jobs:
   ci:
