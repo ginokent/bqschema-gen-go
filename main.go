@@ -165,9 +165,19 @@ package bqtableschema
 
 func generateImportPackagesCode(importPackages []string) (generatedCode string) {
 	importPackagesUniq := make(map[string]bool)
-
 	for _, pkg := range importPackages {
 		importPackagesUniq[pkg] = true
+	}
+
+	// NOTE(djeeno): fix order
+	importPackagesUniqSort := make([]string, len(importPackagesUniq))
+	idx := 0
+	for _, pkg := range importPackages {
+		if importPackagesUniq[pkg] {
+			importPackagesUniq[pkg] = false
+			importPackagesUniqSort[idx] = pkg
+			idx++
+		}
 	}
 
 	switch {
@@ -180,7 +190,7 @@ func generateImportPackagesCode(importPackages []string) (generatedCode string) 
 		generatedCode = generatedCode + "\n"
 	case len(importPackagesUniq) >= 2:
 		generatedCode = "import (\n"
-		for pkg := range importPackagesUniq {
+		for _, pkg := range importPackagesUniqSort {
 			generatedCode = generatedCode + "\t\"" + pkg + "\"\n"
 		}
 		generatedCode = generatedCode + ")\n\n"
