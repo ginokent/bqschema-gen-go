@@ -46,19 +46,92 @@ const (
 	testNotSupportedFieldType = "notSupportedFieldType"
 )
 
+func Test_Generate_OK_1(t *testing.T) {
+	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+	}
+
+	var (
+		ctx       = context.Background()
+		client, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
+	)
+	_, err := Generate(ctx, client, testSupportedDatasetID)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func Test_Generate_OK_2(t *testing.T) {
+	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+	}
+
+	var (
+		ctx       = context.Background()
+		client, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
+	)
+	_, err := Generate(ctx, client, testNotSupportedDatasetID)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func Test_generateImportPackagesCode_OK_1(t *testing.T) {
 	var (
-		testEmptySlice = []string{}
+		testImportsSlice = []string{}
 	)
-	generatedCode := generateImportPackagesCode(testEmptySlice)
+	generatedCode := generateImportPackagesCode(testImportsSlice)
 	if generatedCode != testEmptyString {
 		t.Error()
 	}
 }
 
+func Test_generateImportPackagesCode_OK_2(t *testing.T) {
+	const (
+		testImportCode = "import \"time\"\n\n"
+	)
+	var (
+		testImportsSlice = []string{"time"}
+	)
+	generatedCode := generateImportPackagesCode(testImportsSlice)
+
+	if generatedCode != testImportCode {
+		var (
+			rr      = strings.NewReplacer("\n", "\\n", "`", "\\`")
+			want    = rr.Replace(testImportCode)
+			current = rr.Replace(generatedCode)
+		)
+		t.Error("generateImportPackagesCode: want=`" + want + "` current=`" + current + "`")
+	}
+}
+
+func Test_generateImportPackagesCode_OK_3(t *testing.T) {
+	const (
+		testImportCode = `import (
+	"math/big"
+	"time"
+)
+
+`
+	)
+	var (
+		testImportsSlice = []string{"math/big", "time"}
+	)
+	generatedCode := generateImportPackagesCode(testImportsSlice)
+
+	if generatedCode != testImportCode {
+		var (
+			rr      = strings.NewReplacer("\n", "\\n", "`", "\\`")
+			want    = rr.Replace(testImportCode)
+			current = rr.Replace(generatedCode)
+		)
+		t.Error("generateImportPackagesCode: want=`" + want + "` current=`" + current + "`")
+	}
+}
+
 func Test_generateTableSchemaCode_OK(t *testing.T) {
 	var (
-		okCtx = context.Background()
+		ctx = context.Background()
 	)
 
 	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
@@ -66,8 +139,8 @@ func Test_generateTableSchemaCode_OK(t *testing.T) {
 	}
 
 	var (
-		ngClient, _     = bigquery.NewClient(okCtx, testPublicDataProjectID)
-		ngTableIterator = ngClient.Dataset(testSupportedDatasetID).Tables(okCtx)
+		ngClient, _     = bigquery.NewClient(ctx, testPublicDataProjectID)
+		ngTableIterator = ngClient.Dataset(testSupportedDatasetID).Tables(ctx)
 	)
 
 	for {
@@ -78,7 +151,7 @@ func Test_generateTableSchemaCode_OK(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if _, _, err := generateTableSchemaCode(okCtx, table); err != nil {
+		if _, _, err := generateTableSchemaCode(ctx, table); err != nil {
 			t.Error(err)
 		}
 	}
@@ -86,21 +159,21 @@ func Test_generateTableSchemaCode_OK(t *testing.T) {
 
 func Test_generateTableSchemaCode_NG_1(t *testing.T) {
 	var (
-		ngCtx   = context.Background()
+		ctx     = context.Background()
 		ngTable = &bigquery.Table{
 			ProjectID: testProjectNotFound,
 			DatasetID: testDatasetNotFound,
 			TableID:   testEmptyString,
 		}
 	)
-	if _, _, err := generateTableSchemaCode(ngCtx, ngTable); err == nil {
+	if _, _, err := generateTableSchemaCode(ctx, ngTable); err == nil {
 		t.Error(err)
 	}
 }
 
 func Test_generateTableSchemaCode_NG_2(t *testing.T) {
 	var (
-		ngCtx = context.Background()
+		ctx = context.Background()
 	)
 
 	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
@@ -108,19 +181,19 @@ func Test_generateTableSchemaCode_NG_2(t *testing.T) {
 	}
 
 	var (
-		ngClient, _ = bigquery.NewClient(ngCtx, testPublicDataProjectID)
-		ngTable, _  = ngClient.Dataset(testNotSupportedDatasetID).Tables(ngCtx).Next()
+		ngClient, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
+		ngTable, _  = ngClient.Dataset(testNotSupportedDatasetID).Tables(ctx).Next()
 	)
 
 	ngTable.ProjectID = testProjectNotFound
-	if _, _, err := generateTableSchemaCode(ngCtx, ngTable); err == nil {
+	if _, _, err := generateTableSchemaCode(ctx, ngTable); err == nil {
 		t.Error(err)
 	}
 }
 
 func Test_generateTableSchemaCode_NG_3(t *testing.T) {
 	var (
-		ngCtx = context.Background()
+		ctx = context.Background()
 	)
 
 	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
@@ -128,8 +201,8 @@ func Test_generateTableSchemaCode_NG_3(t *testing.T) {
 	}
 
 	var (
-		ngClient, _     = bigquery.NewClient(ngCtx, testPublicDataProjectID)
-		ngTableIterator = ngClient.Dataset(testNotSupportedDatasetID).Tables(ngCtx)
+		ngClient, _     = bigquery.NewClient(ctx, testPublicDataProjectID)
+		ngTableIterator = ngClient.Dataset(testNotSupportedDatasetID).Tables(ctx)
 	)
 
 	for {
@@ -140,7 +213,7 @@ func Test_generateTableSchemaCode_NG_3(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if _, _, err := generateTableSchemaCode(ngCtx, table); err != nil {
+		if _, _, err := generateTableSchemaCode(ctx, table); err != nil {
 			// NOTE(djeeno): "bigquery.FieldType not supported." 以外のエラーが出たら Fail
 			if !strings.Contains(err.Error(), testSubStrFieldTypeNotSupported) {
 				t.Error(err)
@@ -158,11 +231,11 @@ func Test_getAllTables_OK(t *testing.T) {
 	}
 
 	var (
-		okCtx       = context.Background()
-		okClient, _ = bigquery.NewClient(okCtx, testPublicDataProjectID)
+		ctx         = context.Background()
+		okClient, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
 	)
 
-	if _, err := getAllTables(okCtx, okClient, testSupportedDatasetID); err != nil {
+	if _, err := getAllTables(ctx, okClient, testSupportedDatasetID); err != nil {
 		t.Error(err)
 	}
 }
@@ -178,11 +251,11 @@ func Test_getAllTables_NG(t *testing.T) {
 	_ = os.Setenv(envNameGoogleApplicationCredentials, testGoogleApplicationCredentials)
 
 	var (
-		ngCtx       = context.Background()
-		ngClient, _ = bigquery.NewClient(ngCtx, testProjectNotFound)
+		ctx         = context.Background()
+		ngClient, _ = bigquery.NewClient(ctx, testProjectNotFound)
 	)
 
-	if _, err := getAllTables(ngCtx, ngClient, testDatasetNotFound); err == nil {
+	if _, err := getAllTables(ctx, ngClient, testDatasetNotFound); err == nil {
 		t.Error(err)
 	}
 
