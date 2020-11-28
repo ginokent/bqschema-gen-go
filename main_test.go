@@ -12,24 +12,62 @@ import (
 )
 
 const (
+	// all
+	testEmptyString = ""
+
+	// generateTableSchemaCode, getAllTables
+	testPublicDataProjectID         = "bigquery-public-data"
+	testSupportedDatasetID          = "hacker_news"
+	testNotSupportedDatasetID       = "samples"
+	testProjectNotFound             = "projectnotfound"
+	testDatasetNotFound             = "datasetnotfound"
+	testSubStrFieldTypeNotSupported = "bigquery.FieldType not supported."
+
+	// getAllTables
 	testGoogleApplicationCredentials = "test/serviceaccountnotfound@projectnotfound.iam.gserviceaccount.com.json"
+
+	// readFile
+	testErrNoSuchFileOrDirectoryPath = "/no/such/file/or/directory"
+	testErrIsADirectoryPath          = "."
+	testProbablyExistsPath           = "go.mod"
+
+	// getOptOrEnvOrDefault
+	testOptKey       = "testOptKey"
+	testOptValue     = "testOptValue"
+	testEnvKey       = "TEST_ENV_KEY"
+	testEnvValue     = "testEnvValue"
+	testDefaultValue = "testDefaultValue"
+
+	// capitalizeInitial
+	testNotCapitalized = "a"
+	testCapitalized    = "A"
+
+	// bigqueryFieldTypeToGoType
+	testNotSupportedFieldType = "notSupportedFieldType"
 )
+
+func Test_generateImportPackagesCode_OK_1(t *testing.T) {
+	var (
+		testEmptySlice = []string{}
+	)
+	generatedCode := generateImportPackagesCode(testEmptySlice)
+	if generatedCode != testEmptyString {
+		t.Error()
+	}
+}
 
 func Test_generateTableSchemaCode_OK(t *testing.T) {
 	var (
-		okCtx       = context.Background()
-		okProjectID = "bigquery-public-data"
-		okDatasetID = "hacker_news"
+		okCtx = context.Background()
 	)
 
 	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Log("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-		return
+		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
 	}
 
 	var (
-		ngClient, _     = bigquery.NewClient(okCtx, okProjectID)
-		ngTableIterator = ngClient.Dataset(okDatasetID).Tables(okCtx)
+		ngClient, _     = bigquery.NewClient(okCtx, testPublicDataProjectID)
+		ngTableIterator = ngClient.Dataset(testSupportedDatasetID).Tables(okCtx)
 	)
 
 	for {
@@ -38,12 +76,10 @@ func Test_generateTableSchemaCode_OK(t *testing.T) {
 			break
 		}
 		if err != nil {
-			t.Log(err)
-			t.Fail()
+			t.Error(err)
 		}
 		if _, _, err := generateTableSchemaCode(okCtx, table); err != nil {
-			t.Log(err)
-			t.Fail()
+			t.Error(err)
 		}
 	}
 }
@@ -52,56 +88,48 @@ func Test_generateTableSchemaCode_NG_1(t *testing.T) {
 	var (
 		ngCtx   = context.Background()
 		ngTable = &bigquery.Table{
-			ProjectID: "",
-			DatasetID: "",
-			TableID:   "",
+			ProjectID: testProjectNotFound,
+			DatasetID: testDatasetNotFound,
+			TableID:   testEmptyString,
 		}
 	)
 	if _, _, err := generateTableSchemaCode(ngCtx, ngTable); err == nil {
-		t.Log(err)
-		t.Fail()
+		t.Error(err)
 	}
 }
 
 func Test_generateTableSchemaCode_NG_2(t *testing.T) {
 	var (
-		ngCtx       = context.Background()
-		ngProjectID = "bigquery-public-data"
-		ngDatasetID = "samples"
+		ngCtx = context.Background()
 	)
 
 	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Log("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-		return
+		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
 	}
 
 	var (
-		ngClient, _ = bigquery.NewClient(ngCtx, ngProjectID)
-		ngTable, _  = ngClient.Dataset(ngDatasetID).Tables(ngCtx).Next()
+		ngClient, _ = bigquery.NewClient(ngCtx, testPublicDataProjectID)
+		ngTable, _  = ngClient.Dataset(testNotSupportedDatasetID).Tables(ngCtx).Next()
 	)
 
-	ngTable.ProjectID = "projectnotfound"
+	ngTable.ProjectID = testProjectNotFound
 	if _, _, err := generateTableSchemaCode(ngCtx, ngTable); err == nil {
-		t.Log(err)
-		t.Fail()
+		t.Error(err)
 	}
 }
 
 func Test_generateTableSchemaCode_NG_3(t *testing.T) {
 	var (
-		ngCtx       = context.Background()
-		ngProjectID = "bigquery-public-data"
-		ngDatasetID = "samples"
+		ngCtx = context.Background()
 	)
 
 	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Log("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-		return
+		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
 	}
 
 	var (
-		ngClient, _     = bigquery.NewClient(ngCtx, ngProjectID)
-		ngTableIterator = ngClient.Dataset(ngDatasetID).Tables(ngCtx)
+		ngClient, _     = bigquery.NewClient(ngCtx, testPublicDataProjectID)
+		ngTableIterator = ngClient.Dataset(testNotSupportedDatasetID).Tables(ngCtx)
 	)
 
 	for {
@@ -110,14 +138,12 @@ func Test_generateTableSchemaCode_NG_3(t *testing.T) {
 			break
 		}
 		if err != nil {
-			t.Log(err)
-			t.Fail()
+			t.Error(err)
 		}
 		if _, _, err := generateTableSchemaCode(ngCtx, table); err != nil {
 			// NOTE(djeeno): "bigquery.FieldType not supported." 以外のエラーが出たら Fail
-			if !strings.Contains(err.Error(), "bigquery.FieldType not supported.") {
-				t.Log(err)
-				t.Fail()
+			if !strings.Contains(err.Error(), testSubStrFieldTypeNotSupported) {
+				t.Error(err)
 			}
 			// NOTE(djeeno): ここまで来たら、確認したいことは確認済み。
 			// ref. https://github.com/djeeno/bqtableschema/blob/260524ce0ae2dd5bdcbdd57446cdd8c140326ca4/main.go#L212
@@ -128,20 +154,16 @@ func Test_generateTableSchemaCode_NG_3(t *testing.T) {
 
 func Test_getAllTables_OK(t *testing.T) {
 	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Log("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-		return
+		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
 	}
 
 	var (
 		okCtx       = context.Background()
-		okProjectID = "bigquery-public-data"
-		okClient, _ = bigquery.NewClient(okCtx, okProjectID)
-		okDatasetID = "samples"
+		okClient, _ = bigquery.NewClient(okCtx, testPublicDataProjectID)
 	)
 
-	if _, err := getAllTables(okCtx, okClient, okDatasetID); err != nil {
-		t.Log(err)
-		t.Fail()
+	if _, err := getAllTables(okCtx, okClient, testSupportedDatasetID); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -157,14 +179,11 @@ func Test_getAllTables_NG(t *testing.T) {
 
 	var (
 		ngCtx       = context.Background()
-		ngProjectID = "projectnotfound"
-		ngClient, _ = bigquery.NewClient(ngCtx, ngProjectID)
-		ngDatasetID = "datasetnotfound"
+		ngClient, _ = bigquery.NewClient(ngCtx, testProjectNotFound)
 	)
 
-	if _, err := getAllTables(ngCtx, ngClient, ngDatasetID); err == nil {
-		t.Log(err)
-		t.Fail()
+	if _, err := getAllTables(ngCtx, ngClient, testDatasetNotFound); err == nil {
+		t.Error(err)
 	}
 
 	if exist {
@@ -173,166 +192,133 @@ func Test_getAllTables_NG(t *testing.T) {
 	}
 
 	_ = os.Unsetenv(envNameGoogleApplicationCredentials)
-	return
 }
 
-func Test_readFile(t *testing.T) {
-	var (
-		errNoSuchFileOrDirectoryPath = "/no/such/file/or/directory"
-		errIsADirectory              = "."
-		probablyExistsPath           = "go.mod"
-	)
-	if _, err := readFile(errNoSuchFileOrDirectoryPath); err == nil {
-		t.Log(err)
-		t.Fail()
-	}
-
-	if _, err := readFile(errIsADirectory); err == nil {
-		t.Log(err)
-		t.Fail()
-	}
-
-	if _, err := readFile(probablyExistsPath); err != nil {
-		t.Log(err)
-		t.Fail()
+func Test_readFile_OK(t *testing.T) {
+	if _, err := readFile(testProbablyExistsPath); err != nil {
+		t.Error(err)
 	}
 }
 
-func Test_getOptOrEnvOrDefault(t *testing.T) {
-	var (
-		empty            = ""
-		testOptKey       = "testOptKey"
-		testOptValue     = "testOptValue"
-		testEnvKey       = "TEST_ENV_KEY"
-		testEnvValue     = "testEnvValue"
-		testDefaultValue = "testDefaultValue"
-	)
+func Test_readFile_NG_1(t *testing.T) {
+	if _, err := readFile(testErrNoSuchFileOrDirectoryPath); err == nil {
+		t.Error(err)
+	}
+}
 
-	{
-		v, err := getOptOrEnvOrDefault(empty, empty, empty, empty)
-		if err == nil {
-			t.Log(err)
-			t.Fail()
-		}
-		if v != empty {
-			t.Log(err)
-			t.Fail()
-		}
+func Test_readFile_NG_2(t *testing.T) {
+	if _, err := readFile(testErrIsADirectoryPath); err == nil {
+		t.Error(err)
+	}
+}
+
+func Test_getOptOrEnvOrDefault_OK_1(t *testing.T) {
+	v, err := getOptOrEnvOrDefault(testOptKey, testOptValue, testEnvKey, testDefaultValue)
+	if err != nil {
+		t.Error(err)
+	}
+	if v != testOptValue {
+		t.Error(err)
+	}
+}
+func Test_getOptOrEnvOrDefault_OK_2(t *testing.T) {
+	if err := os.Setenv(testEnvKey, testEnvValue); err != nil {
+		t.Error(err)
+	}
+	v, err := getOptOrEnvOrDefault(testOptKey, testEmptyString, testEnvKey, testDefaultValue)
+	if err != nil {
+		t.Error(err)
+	}
+	if v != testEnvValue {
+		t.Error(err)
+	}
+	if err := os.Unsetenv(testEnvKey); err != nil {
+		t.Error(err)
 	}
 
-	{
-		v, err := getOptOrEnvOrDefault(testOptKey, testOptValue, testEnvKey, testDefaultValue)
-		if err != nil {
-			t.Log(err)
-			t.Fail()
-		}
-		if v != testOptValue {
-			t.Log(err)
-			t.Fail()
-		}
-	}
+}
 
-	{
-		_ = os.Setenv(testEnvKey, testEnvValue)
-		v, err := getOptOrEnvOrDefault(testOptKey, empty, testEnvKey, testDefaultValue)
-		if err != nil {
-			t.Log(err)
-			t.Fail()
-		}
-		if v != testEnvValue {
-			t.Log(err)
-			t.Fail()
-		}
-		_ = os.Unsetenv(testEnvKey)
+func Test_getOptOrEnvOrDefault_OK_3(t *testing.T) {
+	v, err := getOptOrEnvOrDefault(testOptKey, testEmptyString, testEnvKey, testDefaultValue)
+	if err != nil {
+		t.Error(err)
 	}
-
-	{
-		v, err := getOptOrEnvOrDefault(testOptKey, empty, testEnvKey, testDefaultValue)
-		if err != nil {
-			t.Log(err)
-			t.Fail()
-		}
-		if v != testDefaultValue {
-			t.Log(err)
-			t.Fail()
-		}
+	if v != testDefaultValue {
+		t.Error(err)
 	}
+}
 
-	{
-		v, err := getOptOrEnvOrDefault(testOptKey, empty, testEnvKey, empty)
-		if err == nil {
-			t.Log(err)
-			t.Fail()
-		}
-		if v != empty {
-			t.Log(err)
-			t.Fail()
-		}
+func Test_getOptOrEnvOrDefault_NG_1(t *testing.T) {
+	v, err := getOptOrEnvOrDefault(testEmptyString, testEmptyString, testEmptyString, testEmptyString)
+	if err == nil {
+		t.Error(err)
+	}
+	if v != testEmptyString {
+		t.Error(err)
+	}
+}
+
+func Test_getOptOrEnvOrDefault_NG_2(t *testing.T) {
+	v, err := getOptOrEnvOrDefault(testOptKey, testEmptyString, testEnvKey, testEmptyString)
+	if err == nil {
+		t.Error(err)
+	}
+	if v != testEmptyString {
+		t.Error(err)
 	}
 }
 
 func Test_capitalizeInitial(t *testing.T) {
-	var (
-		empty          = ""
-		notCapitalized = "a"
-		capitalized    = "A"
-	)
-
-	if capitalizeInitial(empty) != empty {
-		t.Log()
-		t.Fail()
+	if capitalizeInitial(testEmptyString) != testEmptyString {
+		t.Error()
 	}
 
-	if capitalizeInitial(notCapitalized) != capitalized {
-		t.Log()
-		t.Fail()
+	if capitalizeInitial(testNotCapitalized) != testCapitalized {
+		t.Error()
 	}
 }
 
 func Test_bigqueryFieldTypeToGoType(t *testing.T) {
-	supportedBigqueryFieldTypes := map[bigquery.FieldType]string{
-		bigquery.StringFieldType:    reflect.String.String(),
-		bigquery.BytesFieldType:     typeOfByteSlice.String(),
-		bigquery.IntegerFieldType:   reflect.Int64.String(),
-		bigquery.FloatFieldType:     reflect.Float64.String(),
-		bigquery.BooleanFieldType:   reflect.Bool.String(),
-		bigquery.TimestampFieldType: typeOfGoTime.String(),
-		// TODO(djeeno): support bigquery.RecordFieldType
-		//bigquery.RecordFieldType: "",
-		bigquery.DateFieldType:      typeOfDate.String(),
-		bigquery.TimeFieldType:      typeOfTime.String(),
-		bigquery.DateTimeFieldType:  typeOfDateTime.String(),
-		bigquery.NumericFieldType:   typeOfRat.String(),
-		bigquery.GeographyFieldType: reflect.String.String(),
-	}
+	var (
+		supportedBigqueryFieldTypes = map[bigquery.FieldType]string{
+			bigquery.StringFieldType:    reflect.String.String(),
+			bigquery.BytesFieldType:     typeOfByteSlice.String(),
+			bigquery.IntegerFieldType:   reflect.Int64.String(),
+			bigquery.FloatFieldType:     reflect.Float64.String(),
+			bigquery.BooleanFieldType:   reflect.Bool.String(),
+			bigquery.TimestampFieldType: typeOfGoTime.String(),
+			// TODO(djeeno): support bigquery.RecordFieldType
+			//bigquery.RecordFieldType: "",
+			bigquery.DateFieldType:      typeOfDate.String(),
+			bigquery.TimeFieldType:      typeOfTime.String(),
+			bigquery.DateTimeFieldType:  typeOfDateTime.String(),
+			bigquery.NumericFieldType:   typeOfRat.String(),
+			bigquery.GeographyFieldType: reflect.String.String(),
+		}
 
-	unsupportedBigqueryFieldTypes := map[bigquery.FieldType]string{
-		bigquery.RecordFieldType:               "",
-		bigquery.FieldType("unknownFieldType"): "",
-	}
+		unsupportedBigqueryFieldTypes = map[bigquery.FieldType]string{
+			bigquery.RecordFieldType:                      testEmptyString,
+			bigquery.FieldType(testNotSupportedFieldType): testEmptyString,
+		}
+	)
 
 	for bigqueryFieldType, typeOf := range supportedBigqueryFieldTypes {
 		goType, _, err := bigqueryFieldTypeToGoType(bigqueryFieldType)
 		if err != nil {
-			t.Log(err)
-			t.Fail()
+			t.Error(err)
 		}
 		if goType != typeOf {
-			t.Log()
-			t.Fail()
+			t.Error()
 		}
 	}
 
 	for bigqueryFieldType, typeOf := range unsupportedBigqueryFieldTypes {
 		goType, _, err := bigqueryFieldTypeToGoType(bigqueryFieldType)
 		if err == nil {
-			t.Log(err)
-			t.Fail()
+			t.Error(err)
 		}
 		if goType != typeOf {
-			t.Log()
-			t.Fail()
+			t.Error()
 		}
-
 	}
 }
