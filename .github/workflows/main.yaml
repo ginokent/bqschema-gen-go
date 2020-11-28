@@ -1,27 +1,26 @@
 name: main
 on:
+  #push:
+  #  branches:
+  #    - main
+  #    - develop
+  #pull_request:
+  #  branches:
+  #    - main
+  # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#workflow_dispatch
   workflow_dispatch:
-    inputs: {}
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - "!.gitignore"
-      - "!LICENSE"
-      - "!README.md"
-  pull_request:
-    branches:
-      - main
+  ## NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#schedule
+  #schedule:
+  #  - cron: '30 * * * *'
+
+env:
+  REPOSITORY_PATH: src/github.com/djeeno/bqtableschema
+  #COVERAGE_HTML: src/github.com/djeeno/bqtableschema/coverage.html
 
 jobs:
   ci:
     name: CI
     runs-on: ubuntu-20.04
-
-    env:
-      REPOSITORY_PATH: src/github.com/djeeno/bqtableschema
-      COVERAGE_HTML: src/github.com/djeeno/bqtableschema/coverage.html
 
     steps:
       - uses: actions/checkout@v2
@@ -57,10 +56,10 @@ jobs:
         run: |
           make ci
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: coverage.html
-          path: ${{ env.COVERAGE_HTML }}
+      #- uses: actions/upload-artifact@v2
+      #  with:
+      #    name: coverage.html
+      #    path: ${{ env.COVERAGE_HTML }}
 
       - uses: codecov/codecov-action@v1
         with:
