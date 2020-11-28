@@ -1,13 +1,13 @@
 name: main
 
 on:
-  #push:
-  #  branches:
-  #    - main
-  #    - develop
-  #pull_request:
-  #  branches:
-  #    - main
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
   # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#workflow_dispatch
   workflow_dispatch:
     inputs:
@@ -26,16 +26,16 @@ env:
 jobs:
   ci:
     name: CI
-    runs-on: ${{ github.event.inputs.runs-on }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
         with:
           path: ${{ env.REPOSITORY_PATH }}
 
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v2
         with:
-          go-version: 1.15
+          go-version: ^1.15
 
       # https://github.com/actions/cache/blob/main/examples.md#go---modules
       - uses: actions/cache@v2
@@ -56,8 +56,6 @@ jobs:
       - name: Run make ci
         env:
           GO111MODULE: auto
-          GOPATH: ${{ github.workspace }}
-          APP_ENV: test
         working-directory: ${{ env.REPOSITORY_PATH }}
         run: |
           make ci
