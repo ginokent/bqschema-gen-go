@@ -44,7 +44,7 @@ jobs:
 
       # NOTE(djeeno): https://github.com/actions/cache#skipping-steps-based-on-cache-hit
       - name: Run go mod tidy if not cache hit
-        if: steps.go-mod-cache.outputs.cache-hit != 'true'
+        #if: steps.go-mod-cache.outputs.cache-hit != 'true'
         working-directory: ${{ env.REPOSITORY_PATH }}
         env:
           GO111MODULE: auto
