@@ -261,28 +261,28 @@ func readFile(path string) ([]byte, error) {
 	return bytea, nil
 }
 
-func getOptOrEnvOrDefault(optKey, optValue, envKey, defaultValue string) (string, error) {
-	if optKey == "" {
-		return "", fmt.Errorf("optKey is empty")
+func getOptOrEnvOrDefault(optName, optValue, envName, defaultValue string) (string, error) {
+	if optName == "" {
+		return "", fmt.Errorf("optName is empty")
 	}
 
 	if optValue != "" {
-		log.Println("use option: " + optKey + "=" + optValue)
+		log.Println("use option value: -" + optName + "=" + optValue)
 		return optValue, nil
 	}
 
-	envValue := os.Getenv(envKey)
+	envValue := os.Getenv(envName)
 	if envValue != "" {
-		log.Println("use env: " + envKey + "=" + envValue)
+		log.Println("use environment variable: " + envName + "=" + envValue)
 		return envValue, nil
 	}
 
 	if defaultValue != "" {
-		log.Println("use default: " + optKey + "=" + defaultValue)
+		log.Println("use default option value: -" + optName + "=" + defaultValue)
 		return defaultValue, nil
 	}
 
-	return "", fmt.Errorf("set option -%s, or set environment variable %s", optKey, envKey)
+	return "", fmt.Errorf("set option -%s, or set environment variable %s", optName, envName)
 }
 
 func capitalizeInitial(s string) (capitalized string) {
