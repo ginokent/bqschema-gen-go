@@ -32,9 +32,9 @@ const (
 	testProbablyExistsPath           = "go.mod"
 
 	// getOptOrEnvOrDefault
-	testOptKey       = "testOptKey"
+	testOptName      = "test-opt-key"
 	testOptValue     = "testOptValue"
-	testEnvKey       = "TEST_ENV_KEY"
+	testEnvName      = "TEST_ENV_KEY"
 	testEnvValue     = "testEnvValue"
 	testDefaultValue = "testDefaultValue"
 
@@ -286,7 +286,7 @@ func Test_readFile_NG_2(t *testing.T) {
 }
 
 func Test_getOptOrEnvOrDefault_OK_1(t *testing.T) {
-	v, err := getOptOrEnvOrDefault(testOptKey, testOptValue, testEnvKey, testDefaultValue)
+	v, err := getOptOrEnvOrDefault(testOptName, testOptValue, testEnvName, testDefaultValue)
 	if err != nil {
 		t.Error(err)
 	}
@@ -295,24 +295,24 @@ func Test_getOptOrEnvOrDefault_OK_1(t *testing.T) {
 	}
 }
 func Test_getOptOrEnvOrDefault_OK_2(t *testing.T) {
-	if err := os.Setenv(testEnvKey, testEnvValue); err != nil {
+	if err := os.Setenv(testEnvName, testEnvValue); err != nil {
 		t.Error(err)
 	}
-	v, err := getOptOrEnvOrDefault(testOptKey, testEmptyString, testEnvKey, testDefaultValue)
+	v, err := getOptOrEnvOrDefault(testOptName, testEmptyString, testEnvName, testDefaultValue)
 	if err != nil {
 		t.Error(err)
 	}
 	if v != testEnvValue {
 		t.Error(err)
 	}
-	if err := os.Unsetenv(testEnvKey); err != nil {
+	if err := os.Unsetenv(testEnvName); err != nil {
 		t.Error(err)
 	}
 
 }
 
 func Test_getOptOrEnvOrDefault_OK_3(t *testing.T) {
-	v, err := getOptOrEnvOrDefault(testOptKey, testEmptyString, testEnvKey, testDefaultValue)
+	v, err := getOptOrEnvOrDefault(testOptName, testEmptyString, testEnvName, testDefaultValue)
 	if err != nil {
 		t.Error(err)
 	}
@@ -332,7 +332,7 @@ func Test_getOptOrEnvOrDefault_NG_1(t *testing.T) {
 }
 
 func Test_getOptOrEnvOrDefault_NG_2(t *testing.T) {
-	v, err := getOptOrEnvOrDefault(testOptKey, testEmptyString, testEnvKey, testEmptyString)
+	v, err := getOptOrEnvOrDefault(testOptName, testEmptyString, testEnvName, testEmptyString)
 	if err == nil {
 		t.Error(err)
 	}
