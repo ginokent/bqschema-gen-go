@@ -307,8 +307,9 @@ func errorln(content string) {
 
 func exit(code int) {
 	if os.Getenv("GOTEST") == "true" {
-		os.Exit(code)
+		return
 	}
+	os.Exit(code)
 }
 
 // NOTE(djeeno): ref. https://github.com/googleapis/google-cloud-go/blob/f37f118c87d4d0a77a554515a430ae06e5852294/bigquery/schema.go#L216
