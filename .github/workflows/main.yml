@@ -31,9 +31,8 @@ jobs:
       - uses: actions/cache@v2
         #id: go-mod-cache
         with:
-          path: ~/go/pkg/mod
-          #path: |
-          #  ~/go/pkg/mod
+          path: |
+            ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -73,4 +72,4 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          #file: ./coverage.txt
+          file: ./coverage.txt
