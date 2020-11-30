@@ -14,9 +14,6 @@ on:
   schedule:
     - cron: '0 9 * * *'
 
-env:
-  REPOSITORY_PATH: src/github.com/djeeno/bqtableschema
-
 jobs:
   ci:
     name: CI
@@ -24,8 +21,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-        with:
-          path: ${{ env.REPOSITORY_PATH }}
 
       # NOTE(djeeno): https://github.com/actions/setup-go#usage
       - uses: actions/setup-go@v2
@@ -37,6 +32,8 @@ jobs:
         #id: go-mod-cache
         with:
           path: ~/go/pkg/mod
+          #path: |
+          #  ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -45,7 +42,6 @@ jobs:
       # NOTE(djeeno): https://github.com/actions/cache#skipping-steps-based-on-cache-hit
       - name: Run go mod tidy if not cache hit
         #if: steps.go-mod-cache.outputs.cache-hit != 'true'
-        working-directory: ${{ env.REPOSITORY_PATH }}
         env:
           GO111MODULE: auto
         run: |
@@ -62,7 +58,6 @@ jobs:
           export_default_credentials: true
 
       - name: Run make ci
-        working-directory: ${{ env.REPOSITORY_PATH }}
         env:
           GO111MODULE: auto
         run: |
@@ -72,10 +67,10 @@ jobs:
       #- uses: actions/upload-artifact@v2
       #  with:
       #    name: coverage.html
-      #    path: ${{ env.REPOSITORY_PATH }}/coverage.html
+      #    path: ./coverage.html
 
       # NOTE(djeeno): https://github.com/codecov/codecov-action#example-workflowyml-with-codecov-action
       - uses: codecov/codecov-action@v1
         with:
-          directory: ${{ env.REPOSITORY_PATH }}
           token: ${{ secrets.CODECOV_TOKEN }}
+          #file: ./coverage.txt
