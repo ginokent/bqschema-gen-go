@@ -40,7 +40,7 @@ jobs:
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
             ${{ runner.os }}-go-
 
-      - name: Run go mod download
+      - name: Run go mod download if not cache hit
         if: steps.cache.outputs.cache-hit != 'true'
         env:
           GO111MODULE: auto
