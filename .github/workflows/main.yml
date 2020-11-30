@@ -27,20 +27,18 @@ jobs:
         with:
           go-version: ^1.15
 
-      # NOTE(djeeno): https://github.com/actions/cache/blob/main/examples.md#go---modules
-      - uses: actions/cache@v2
-        #id: go-mod-cache
-        with:
-          path: |
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            temp${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-            temp${{ runner.os }}-go-
+      ## NOTE(djeeno): https://github.com/actions/cache/blob/main/examples.md#go---modules
+      #- uses: actions/cache@v2
+      #  with:
+      #    path: |
+      #      ~/go/pkg/mod
+      #    key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      #    restore-keys: |
+      #      ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      #      ${{ runner.os }}-go-
 
       # NOTE(djeeno): https://github.com/actions/cache#skipping-steps-based-on-cache-hit
-      - name: Run go mod tidy if not cache hit
-        #if: steps.go-mod-cache.outputs.cache-hit != 'true'
+      - name: Run go mod tidy (if not cache hit)
         env:
           GO111MODULE: auto
         run: |
