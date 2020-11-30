@@ -267,15 +267,18 @@ func getOptOrEnvOrDefault(optKey, optValue, envKey, defaultValue string) (string
 	}
 
 	if optValue != "" {
+		log.Println("use option: " + optKey + "=" + optValue)
 		return optValue, nil
 	}
 
 	envValue := os.Getenv(envKey)
 	if envValue != "" {
+		log.Println("use env: " + envKey + "=" + envValue)
 		return envValue, nil
 	}
 
 	if defaultValue != "" {
+		log.Println("use default: " + optKey + "=" + defaultValue)
 		return defaultValue, nil
 	}
 
