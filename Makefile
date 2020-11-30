@@ -6,7 +6,7 @@ COVERAGE_FILE := ${MAIN_DIR}/coverage.txt
 COVERAGE_HTML := ${MAIN_DIR}/coverage.html
 TEST_CMD      := go test -v -race -cover -coverprofile=${COVERAGE_FILE} ./...
 
-OPEN_CMD := $(shell if command -v explorer.exe; then : "noop"; elif command -v open; then : "noop"; else echo "echo"; fi)
+OPEN_CMD := $(shell if command -v explorer.exe 1>/dev/null; then echo "explorer.exe"; elif uname -s | grep -q Darwin; then echo "open"; else echo "echo"; fi)
 
 .PHONY: help
 help:  ## display this documents

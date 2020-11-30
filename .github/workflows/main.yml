@@ -1,14 +1,15 @@
 name: main
+
 on:
-  #push:
-  #  branches:
-  #    - main
-  #    - develop
-  #pull_request:
-  #  branches:
-  #    - main
   # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#workflow_dispatch
   workflow_dispatch:
+    inputs: {}
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   ## NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#schedule
   #schedule:
   #  - cron: '30 * * * *'
@@ -21,15 +22,14 @@ jobs:
   ci:
     name: CI
     runs-on: ubuntu-20.04
-
     steps:
       - uses: actions/checkout@v2
         with:
           path: ${{ env.REPOSITORY_PATH }}
 
-      - uses: actions/setup-go@v1
+      - uses: actions/setup-go@v2
         with:
-          go-version: 1.15
+          go-version: ^1.15
 
       # https://github.com/actions/cache/blob/main/examples.md#go---modules
       - uses: actions/cache@v2
@@ -39,6 +39,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
             ${{ runner.os }}-go-
+
+      - name: Run go mod download if not cache hit
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          GO111MODULE: auto
+        working-directory: ${{ env.REPOSITORY_PATH }}
+        run: |
+          go mod download
 
       - uses: google-github-actions/setup-gcloud@v0.2.0
         with:
@@ -50,8 +58,6 @@ jobs:
       - name: Run make ci
         env:
           GO111MODULE: auto
-          GOPATH: ${{ github.workspace }}
-          APP_ENV: test
         working-directory: ${{ env.REPOSITORY_PATH }}
         run: |
           make ci
