@@ -34,21 +34,24 @@ jobs:
 
       # NOTE(djeeno): https://github.com/actions/cache/blob/main/examples.md#go---modules
       - uses: actions/cache@v2
+        id: go-mod-cache
         with:
-          path: ${{ github.workspace }}/pkg/mod
+          path: ${{ env.GOPATH }}/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
             ${{ runner.os }}-go-
 
       # NOTE(djeeno): https://github.com/actions/cache#skipping-steps-based-on-cache-hit
-      - name: Run go mod download if not cache hit
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Run go mod tidy if not cache hit
+        if: steps.go-mod-cache.outputs.cache-hit != 'true'
+        working-directory: ${{ env.REPOSITORY_PATH }}
         env:
           GO111MODULE: auto
-        working-directory: ${{ env.REPOSITORY_PATH }}
         run: |
-          go mod download
+          go mod tidy
+          git diff --exit-code go.mod
+          git diff --exit-code go.sum
 
       # NOTE(djeeno): https://github.com/google-github-actions/setup-gcloud#usage
       - uses: google-github-actions/setup-gcloud@v0.2.0
@@ -59,9 +62,9 @@ jobs:
           export_default_credentials: true
 
       - name: Run make ci
+        working-directory: ${{ env.REPOSITORY_PATH }}
         env:
           GO111MODULE: auto
-        working-directory: ${{ env.REPOSITORY_PATH }}
         run: |
           make ci
 
@@ -74,5 +77,5 @@ jobs:
       # NOTE(djeeno): https://github.com/codecov/codecov-action#example-workflowyml-with-codecov-action
       - uses: codecov/codecov-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           directory: ${{ env.REPOSITORY_PATH }}
+          token: ${{ secrets.CODECOV_TOKEN }}
