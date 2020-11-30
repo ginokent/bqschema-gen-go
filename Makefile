@@ -2,8 +2,8 @@ COMMAND_NAME  := bqtableschema
 COMMIT_HASH   := $(shell git rev-parse HEAD)
 ROOT_DIR      := $(shell git rev-parse --show-toplevel)
 MAIN_DIR      := ${ROOT_DIR}
-COVERAGE_FILE := ${MAIN_DIR}/coverage.txt
-COVERAGE_HTML := ${MAIN_DIR}/coverage.html
+COVERAGE_FILE := ${ROOT_DIR}/coverage.txt
+COVERAGE_HTML := ${ROOT_DIR}/coverage.html
 TEST_CMD      := go test -v -race -cover -coverprofile=${COVERAGE_FILE} ./...
 
 OPEN_CMD := $(shell if command -v explorer.exe 1>/dev/null; then echo "explorer.exe"; elif uname -s | grep -q Darwin; then echo "open"; else echo "echo"; fi)
