@@ -40,6 +40,14 @@ jobs:
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
             ${{ runner.os }}-go-
 
+      - name: Run go mod download
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          GO111MODULE: auto
+        working-directory: ${{ env.REPOSITORY_PATH }}
+        run: |
+          go mod download
+
       - uses: google-github-actions/setup-gcloud@v0.2.0
         with:
           project_id: ${{ secrets.GCLOUD_PROJECT_ID }}                        ## NOTE(djeeno): JSON の中の project_id に相当。 GitHub Actions のログに出ないようにするため
