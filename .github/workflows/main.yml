@@ -1,6 +1,9 @@
 name: main
 
 on:
+  # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#workflow_dispatch
+  workflow_dispatch:
+    inputs: {}
   push:
     branches:
       - main
@@ -8,13 +11,6 @@ on:
   pull_request:
     branches:
       - main
-  # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#workflow_dispatch
-  workflow_dispatch:
-    inputs:
-      runs-on:
-        description: 'ref. https://docs.github.com/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on'
-        required: true
-        default: 'ubuntu-latest'
   ## NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#schedule
   #schedule:
   #  - cron: '30 * * * *'
@@ -27,7 +23,6 @@ jobs:
   ci:
     name: CI
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
         with:
