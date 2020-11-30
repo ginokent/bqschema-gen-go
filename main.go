@@ -56,7 +56,7 @@ func main() {
 
 	if err := Run(ctx); err != nil {
 		errorln("Run: " + err.Error())
-		os.Exit(1)
+		exit(1)
 	}
 }
 
@@ -303,6 +303,12 @@ func warnln(content string) {
 
 func errorln(content string) {
 	log.Println("ERROR: " + content)
+}
+
+func exit(code int) {
+	if os.Getenv("GOTEST") == "true" {
+		os.Exit(code)
+	}
 }
 
 // NOTE(djeeno): ref. https://github.com/googleapis/google-cloud-go/blob/f37f118c87d4d0a77a554515a430ae06e5852294/bigquery/schema.go#L216
