@@ -46,6 +46,41 @@ const (
 	testNotSupportedFieldType = "notSupportedFieldType"
 )
 
+func Test_Run_OK_1(t *testing.T) {
+	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+	}
+
+	// projectID
+	backupEnvNameGCloudProjectID, exist := os.LookupEnv(envNameGCloudProjectID)
+	_ = os.Setenv(envNameGCloudProjectID, testPublicDataProjectID)
+	defer func() {
+		if exist {
+			_ = os.Setenv(envNameGCloudProjectID, backupEnvNameGCloudProjectID)
+			return
+		}
+		_ = os.Unsetenv(envNameGCloudProjectID)
+	}()
+
+	// datasetID
+	backupEnvNameBigQueryDatasetValue, exist := os.LookupEnv(envNameBigQueryDataset)
+	_ = os.Setenv(envNameBigQueryDataset, testSupportedDatasetID)
+	defer func() {
+		if exist {
+			_ = os.Setenv(envNameBigQueryDataset, backupEnvNameBigQueryDatasetValue)
+			return
+		}
+		_ = os.Unsetenv(envNameBigQueryDataset)
+	}()
+
+	var (
+		ctx = context.Background()
+	)
+	if err := Run(ctx); err != nil {
+		t.Error(err)
+	}
+}
+
 func Test_Generate_OK_1(t *testing.T) {
 	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
 		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
@@ -241,12 +276,15 @@ func Test_getAllTables_OK(t *testing.T) {
 }
 
 func Test_getAllTables_NG(t *testing.T) {
-	var backupValue string
-	v, exist := os.LookupEnv(envNameGoogleApplicationCredentials)
-	if exist {
-		backupValue = v
-	}
+	backupValue, exist := os.LookupEnv(envNameGoogleApplicationCredentials)
 	_ = os.Setenv(envNameGoogleApplicationCredentials, testGoogleApplicationCredentials)
+	defer func() {
+		if exist {
+			_ = os.Setenv(envNameGoogleApplicationCredentials, backupValue)
+			return
+		}
+		_ = os.Unsetenv(envNameGoogleApplicationCredentials)
+	}()
 
 	var (
 		ctx         = context.Background()
@@ -256,12 +294,6 @@ func Test_getAllTables_NG(t *testing.T) {
 	if _, err := getAllTables(ctx, ngClient, testDatasetNotFound); err == nil {
 		t.Error(err)
 	}
-
-	if exist {
-		_ = os.Setenv(envNameGoogleApplicationCredentials, backupValue)
-		return
-	}
-	_ = os.Unsetenv(envNameGoogleApplicationCredentials)
 }
 
 func Test_readFile_OK(t *testing.T) {
@@ -366,20 +398,17 @@ func Test_exit(t *testing.T) {
 		envValueGoTest = "true"
 	)
 
-	var backupValue string
-	v, exist := os.LookupEnv(envNameGoTest)
-	if exist {
-		backupValue = v
-	}
+	backupValue, exist := os.LookupEnv(envNameGoTest)
 	_ = os.Setenv(envNameGoTest, envValueGoTest)
+	defer func() {
+		if exist {
+			_ = os.Setenv(envNameGoTest, backupValue)
+			return
+		}
+		_ = os.Unsetenv(envNameGoTest)
+	}()
 
 	exit(1)
-
-	if exist {
-		_ = os.Setenv(envNameGoTest, backupValue)
-		return
-	}
-	_ = os.Unsetenv(envNameGoTest)
 }
 
 func Test_bigqueryFieldTypeToGoType(t *testing.T) {
