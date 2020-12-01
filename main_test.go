@@ -242,12 +242,10 @@ func Test_getAllTables_OK(t *testing.T) {
 
 func Test_getAllTables_NG(t *testing.T) {
 	var backupValue string
-
 	v, exist := os.LookupEnv(envNameGoogleApplicationCredentials)
 	if exist {
 		backupValue = v
 	}
-
 	_ = os.Setenv(envNameGoogleApplicationCredentials, testGoogleApplicationCredentials)
 
 	var (
@@ -263,7 +261,6 @@ func Test_getAllTables_NG(t *testing.T) {
 		_ = os.Setenv(envNameGoogleApplicationCredentials, backupValue)
 		return
 	}
-
 	_ = os.Unsetenv(envNameGoogleApplicationCredentials)
 }
 
@@ -349,6 +346,40 @@ func Test_capitalizeInitial(t *testing.T) {
 	if capitalizeInitial(testNotCapitalized) != testCapitalized {
 		t.Error()
 	}
+}
+
+func Test_infoln(t *testing.T) {
+	infoln("test")
+}
+
+func Test_warnln(t *testing.T) {
+	warnln("test")
+}
+
+func Test_errorln(t *testing.T) {
+	errorln("test")
+}
+
+func Test_exit(t *testing.T) {
+	var (
+		envNameGoTest  = "GOTEST"
+		envValueGoTest = "true"
+	)
+
+	var backupValue string
+	v, exist := os.LookupEnv(envNameGoTest)
+	if exist {
+		backupValue = v
+	}
+	_ = os.Setenv(envNameGoTest, envValueGoTest)
+
+	exit(1)
+
+	if exist {
+		_ = os.Setenv(envNameGoTest, backupValue)
+		return
+	}
+	_ = os.Unsetenv(envNameGoTest)
 }
 
 func Test_bigqueryFieldTypeToGoType(t *testing.T) {

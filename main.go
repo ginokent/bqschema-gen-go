@@ -55,7 +55,8 @@ func main() {
 	ctx := context.Background()
 
 	if err := Run(ctx); err != nil {
-		log.Fatalf("Run: %v\n", err)
+		errorln("Run: " + err.Error())
+		exit(1)
 	}
 }
 
@@ -96,7 +97,7 @@ func Run(ctx context.Context) error {
 	}
 	defer func() {
 		if err := client.Close(); err != nil {
-			log.Printf("client.Close: %v\n", err)
+			warnln("client.Close: " + err.Error())
 		}
 	}()
 
@@ -133,7 +134,7 @@ package bqtableschema
 	for _, table := range tables {
 		structCode, pkgs, err := generateTableSchemaCode(ctx, table)
 		if err != nil {
-			log.Printf("generateTableSchemaCode: %v\n", err)
+			warnln("generateTableSchemaCode: " + err.Error())
 			continue
 		}
 
@@ -267,18 +268,18 @@ func getOptOrEnvOrDefault(optName, optValue, envName, defaultValue string) (stri
 	}
 
 	if optValue != "" {
-		log.Println("use option value: -" + optName + "=" + optValue)
+		infoln("use option value: -" + optName + "=" + optValue)
 		return optValue, nil
 	}
 
 	envValue := os.Getenv(envName)
 	if envValue != "" {
-		log.Println("use environment variable: " + envName + "=" + envValue)
+		infoln("use environment variable: " + envName + "=" + envValue)
 		return envValue, nil
 	}
 
 	if defaultValue != "" {
-		log.Println("use default option value: -" + optName + "=" + defaultValue)
+		infoln("use default option value: -" + optName + "=" + defaultValue)
 		return defaultValue, nil
 	}
 
@@ -290,6 +291,25 @@ func capitalizeInitial(s string) (capitalized string) {
 		return ""
 	}
 	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+func infoln(content string) {
+	log.Println("INFO: " + content)
+}
+
+func warnln(content string) {
+	log.Println("WARNING: " + content)
+}
+
+func errorln(content string) {
+	log.Println("ERROR: " + content)
+}
+
+func exit(code int) {
+	if os.Getenv("GOTEST") == "true" {
+		return
+	}
+	os.Exit(code)
 }
 
 // NOTE(djeeno): ref. https://github.com/googleapis/google-cloud-go/blob/f37f118c87d4d0a77a554515a430ae06e5852294/bigquery/schema.go#L216
