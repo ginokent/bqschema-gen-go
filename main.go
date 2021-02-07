@@ -39,18 +39,13 @@ const (
 
 var (
 	// optValue
-	optValueProjectID  string
-	optValueDataset    string
-	optValueKeyFile    string
-	optValueOutputPath string
+	optValueProjectID  = flag.String(optNameProjectID, defaultValueEmpty, "")
+	optValueDataset    = flag.String(optNameDataset, defaultValueEmpty, "")
+	optValueKeyFile    = flag.String(optNameKeyFile, defaultValueEmpty, "path to service account json key file")
+	optValueOutputPath = flag.String(optNameOutputFile, defaultValueEmpty, "path to output the generated code")
 )
 
 func main() {
-	flag.StringVar(&optValueProjectID, optNameProjectID, defaultValueEmpty, "")
-	flag.StringVar(&optValueDataset, optNameDataset, defaultValueEmpty, "")
-	flag.StringVar(&optValueKeyFile, optNameKeyFile, defaultValueEmpty, "path to service account json key file")
-	flag.StringVar(&optValueOutputPath, optNameOutputFile, defaultValueEmpty, "path to output the generated code")
-	flag.Parse()
 
 	ctx := context.Background()
 
@@ -62,31 +57,36 @@ func main() {
 
 // Run is effectively a `main` function.
 // It is separated from the `main` function because of addressing an issue where` defer` is not executed when `os.Exit` is executed.
-func Run(ctx context.Context) error {
+func Run(ctx context.Context) (err error) {
+	flag.Parse()
 
-	filePath, err := getOptOrEnvOrDefault(optNameOutputFile, optValueOutputPath, envNameOutputFile, defaultValueOutputFile)
+	var keyfile string
+	keyfile, err = getOptOrEnvOrDefault(optNameKeyFile, *optValueKeyFile, envNameGoogleApplicationCredentials, "")
 	if err != nil {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
-	keyfile, err := getOptOrEnvOrDefault(optNameKeyFile, optValueKeyFile, envNameGoogleApplicationCredentials, "")
+	var project string
+	project, err = getOptOrEnvOrDefault(optNameProjectID, *optValueProjectID, envNameGCloudProjectID, "")
 	if err != nil {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
-	project, err := getOptOrEnvOrDefault(optNameProjectID, optValueProjectID, envNameGCloudProjectID, "")
+	var dataset string
+	dataset, err = getOptOrEnvOrDefault(optNameDataset, *optValueDataset, envNameBigQueryDataset, "")
 	if err != nil {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
-	dataset, err := getOptOrEnvOrDefault(optNameDataset, optValueDataset, envNameBigQueryDataset, "")
+	var filePath string
+	filePath, err = getOptOrEnvOrDefault(optNameOutputFile, *optValueOutputPath, envNameOutputFile, defaultValueOutputFile)
 	if err != nil {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
 	// set GOOGLE_APPLICATION_CREDENTIALS for Google Cloud SDK
 	if os.Getenv(envNameGoogleApplicationCredentials) != keyfile {
-		if err := os.Setenv(envNameGoogleApplicationCredentials, keyfile); err != nil {
+		if err = os.Setenv(envNameGoogleApplicationCredentials, keyfile); err != nil {
 			return fmt.Errorf("os.Setenv: %w", err)
 		}
 	}
@@ -96,7 +96,7 @@ func Run(ctx context.Context) error {
 		return fmt.Errorf("bigquery.NewClient: %w", err)
 	}
 	defer func() {
-		if err := client.Close(); err != nil {
+		if err = client.Close(); err != nil {
 			warnln("client.Close: " + err.Error())
 		}
 	}()
@@ -107,7 +107,7 @@ func Run(ctx context.Context) error {
 	}
 
 	// NOTE(djeeno): output
-	if err := ioutil.WriteFile(filePath, generatedCode, 0644); err != nil {
+	if err = ioutil.WriteFile(filePath, generatedCode, 0644); err != nil {
 		return fmt.Errorf("ioutil.WriteFile: %w", err)
 	}
 
@@ -132,7 +132,9 @@ package bqtableschema
 	var tail string
 	var importPackages []string
 	for _, table := range tables {
-		structCode, pkgs, err := generateTableSchemaCode(ctx, table)
+		var structCode string
+		var pkgs []string
+		structCode, pkgs, err = generateTableSchemaCode(ctx, table)
 		if err != nil {
 			warnln("generateTableSchemaCode: " + err.Error())
 			continue
@@ -206,7 +208,8 @@ func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (genera
 	}
 	structName := capitalizeInitial(table.TableID)
 
-	md, err := table.Metadata(ctx)
+	var md *bigquery.TableMetadata
+	md, err = table.Metadata(ctx)
 	if err != nil {
 		return "", nil, fmt.Errorf("table.Metadata: %w", err)
 	}
@@ -219,7 +222,8 @@ func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (genera
 	schemas := []*bigquery.FieldSchema(md.Schema)
 
 	for _, schema := range schemas {
-		goTypeStr, pkg, err := bigqueryFieldTypeToGoType(schema.Type)
+		var goTypeStr, pkg string
+		goTypeStr, pkg, err = bigqueryFieldTypeToGoType(schema.Type)
 		if err != nil {
 			return "", nil, fmt.Errorf("bigqueryFieldTypeToGoType: %w", err)
 		}
@@ -236,7 +240,8 @@ func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (genera
 func getAllTables(ctx context.Context, client *bigquery.Client, datasetID string) (tables []*bigquery.Table, err error) {
 	tableIterator := client.Dataset(datasetID).Tables(ctx)
 	for {
-		table, err := tableIterator.Next()
+		var table *bigquery.Table
+		table, err = tableIterator.Next()
 		if err != nil {
 			if err == iterator.Done {
 				break
@@ -248,13 +253,15 @@ func getAllTables(ctx context.Context, client *bigquery.Client, datasetID string
 	return tables, nil
 }
 
-func readFile(path string) ([]byte, error) {
-	file, err := os.Open(path)
+func readFile(path string) (content []byte, err error) {
+	var file *os.File
+	file, err = os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("os.Open: %w", err)
 	}
 
-	bytea, err := ioutil.ReadAll(file)
+	var bytea []byte
+	bytea, err = ioutil.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("ioutil.ReadAll: %w", err)
 	}
@@ -262,7 +269,7 @@ func readFile(path string) ([]byte, error) {
 	return bytea, nil
 }
 
-func getOptOrEnvOrDefault(optName, optValue, envName, defaultValue string) (string, error) {
+func getOptOrEnvOrDefault(optName, optValue, envName, defaultValue string) (value string, err error) {
 	if optName == "" {
 		return "", fmt.Errorf("optName is empty")
 	}
@@ -298,7 +305,7 @@ func infoln(content string) {
 }
 
 func warnln(content string) {
-	log.Println("WARNING: " + content)
+	log.Println("WARN: " + content)
 }
 
 func errorln(content string) {

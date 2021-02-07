@@ -46,338 +46,367 @@ const (
 	testNotSupportedFieldType = "notSupportedFieldType"
 )
 
-func Test_Run_OK_1(t *testing.T) {
-	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-	}
-
-	// projectID
-	backupEnvNameGCloudProjectID, exist := os.LookupEnv(envNameGCloudProjectID)
-	_ = os.Setenv(envNameGCloudProjectID, testPublicDataProjectID)
-	defer func() {
-		if exist {
-			_ = os.Setenv(envNameGCloudProjectID, backupEnvNameGCloudProjectID)
-			return
+func Test_Run(t *testing.T) {
+	t.Run("正常系_testPublicDataProjectID_"+testPublicDataProjectID+"_testSupportedDatasetID_"+testSupportedDatasetID, func(t *testing.T) {
+		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
 		}
-		_ = os.Unsetenv(envNameGCloudProjectID)
-	}()
 
-	// datasetID
-	backupEnvNameBigQueryDatasetValue, exist := os.LookupEnv(envNameBigQueryDataset)
-	_ = os.Setenv(envNameBigQueryDataset, testSupportedDatasetID)
-	defer func() {
-		if exist {
-			_ = os.Setenv(envNameBigQueryDataset, backupEnvNameBigQueryDatasetValue)
-			return
-		}
-		_ = os.Unsetenv(envNameBigQueryDataset)
-	}()
+		// projectID
+		backupEnvNameGCloudProjectID, exist := os.LookupEnv(envNameGCloudProjectID)
+		_ = os.Setenv(envNameGCloudProjectID, testPublicDataProjectID)
+		defer func() {
+			if exist {
+				_ = os.Setenv(envNameGCloudProjectID, backupEnvNameGCloudProjectID)
+				return
+			}
+			_ = os.Unsetenv(envNameGCloudProjectID)
+		}()
 
-	var (
-		ctx = context.Background()
-	)
-	if err := Run(ctx); err != nil {
-		t.Error(err)
-	}
-}
+		// datasetID
+		backupEnvNameBigQueryDatasetValue, exist := os.LookupEnv(envNameBigQueryDataset)
+		_ = os.Setenv(envNameBigQueryDataset, testSupportedDatasetID)
+		defer func() {
+			if exist {
+				_ = os.Setenv(envNameBigQueryDataset, backupEnvNameBigQueryDatasetValue)
+				return
+			}
+			_ = os.Unsetenv(envNameBigQueryDataset)
+		}()
 
-func Test_Generate_OK_1(t *testing.T) {
-	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-	}
-
-	var (
-		ctx       = context.Background()
-		client, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
-	)
-	_, err := Generate(ctx, client, testSupportedDatasetID)
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func Test_Generate_OK_2(t *testing.T) {
-	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-	}
-
-	var (
-		ctx       = context.Background()
-		client, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
-	)
-	_, err := Generate(ctx, client, testNotSupportedDatasetID)
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func Test_generateImportPackagesCode_OK_1(t *testing.T) {
-	var (
-		testImportsSlice = []string{}
-	)
-	generatedCode := generateImportPackagesCode(testImportsSlice)
-	if generatedCode != testEmptyString {
-		t.Error()
-	}
-}
-
-func Test_generateImportPackagesCode_OK_2(t *testing.T) {
-	const (
-		testImportCode = "import \"time\"\n\n"
-	)
-	var (
-		testImportsSlice = []string{"time"}
-	)
-	generatedCode := generateImportPackagesCode(testImportsSlice)
-
-	if generatedCode != testImportCode {
 		var (
-			rr      = strings.NewReplacer("\n", "\\n", "`", "\\`")
-			want    = rr.Replace(testImportCode)
-			current = rr.Replace(generatedCode)
+			ctx = context.Background()
 		)
-		t.Error("generateImportPackagesCode: want=`" + want + "` current=`" + current + "`")
-	}
+		if err := Run(ctx); err != nil {
+			t.Error(err)
+		}
+	})
 }
 
-func Test_generateImportPackagesCode_OK_3(t *testing.T) {
-	const (
-		testImportCode = `import (
+func Test_Generate(t *testing.T) {
+	t.Run("正常系_testSupportedDatasetID_"+testSupportedDatasetID, func(t *testing.T) {
+		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		}
+
+		var (
+			ctx       = context.Background()
+			client, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
+		)
+
+		_, err := Generate(ctx, client, testSupportedDatasetID)
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("正常系_testNotSupportedDatasetID_"+testNotSupportedDatasetID, func(t *testing.T) {
+		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		}
+
+		var (
+			ctx       = context.Background()
+			client, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
+		)
+
+		_, err := Generate(ctx, client, testNotSupportedDatasetID)
+		if err != nil {
+			t.Error(err)
+		}
+	})
+}
+
+func Test_generateImportPackagesCode(t *testing.T) {
+	t.Run("正常系_import_nothing", func(t *testing.T) {
+		const (
+			// 正しい出力
+			testImportCode = ""
+		)
+		var (
+			testImportsSlice = []string{}
+		)
+
+		generatedCode := generateImportPackagesCode(testImportsSlice)
+		if generatedCode != testImportCode {
+			t.Error()
+		}
+	})
+
+	t.Run("正常系_import_time", func(t *testing.T) {
+		const (
+			// 正しい出力
+			testImportCode = "import \"time\"\n\n"
+		)
+		var (
+			testImportsSlice = []string{"time"}
+		)
+		generatedCode := generateImportPackagesCode(testImportsSlice)
+
+		if generatedCode != testImportCode {
+			var (
+				rr      = strings.NewReplacer("\n", "\\n", "`", "\\`")
+				want    = rr.Replace(testImportCode)
+				current = rr.Replace(generatedCode)
+			)
+			t.Error("generateImportPackagesCode: want=`" + want + "` current=`" + current + "`")
+		}
+	})
+
+	t.Run("正常系_import_math/big_time", func(t *testing.T) {
+		const (
+			// 正しい出力
+			testImportCode = `import (
 	"math/big"
 	"time"
 )
 
 `
-	)
-	var (
-		testImportsSlice = []string{"math/big", "time"}
-	)
-	generatedCode := generateImportPackagesCode(testImportsSlice)
-
-	if generatedCode != testImportCode {
-		var (
-			rr      = strings.NewReplacer("\n", "\\n", "`", "\\`")
-			want    = rr.Replace(testImportCode)
-			current = rr.Replace(generatedCode)
 		)
-		t.Error("generateImportPackagesCode: want=`" + want + "` current=`" + current + "`")
-	}
+		var (
+			testImportsSlice = []string{"math/big", "time"}
+		)
+		generatedCode := generateImportPackagesCode(testImportsSlice)
+
+		if generatedCode != testImportCode {
+			var (
+				rr      = strings.NewReplacer("\n", "\\n", "`", "\\`")
+				want    = rr.Replace(testImportCode)
+				current = rr.Replace(generatedCode)
+			)
+			t.Error("generateImportPackagesCode: want=`" + want + "` current=`" + current + "`")
+		}
+	})
 }
 
-func Test_generateTableSchemaCode_OK(t *testing.T) {
-	var (
-		ctx = context.Background()
-	)
+func Test_generateTableSchemaCode(t *testing.T) {
+	t.Run("正常系_testPublicDataProjectID_testPublicDataProjectID", func(t *testing.T) {
+		var (
+			ctx = context.Background()
+		)
 
-	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-	}
-
-	var (
-		ngClient, _     = bigquery.NewClient(ctx, testPublicDataProjectID)
-		ngTableIterator = ngClient.Dataset(testSupportedDatasetID).Tables(ctx)
-	)
-
-	for {
-		table, err := ngTableIterator.Next()
-		if err == iterator.Done {
-			break
+		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
 		}
-		if err != nil {
-			t.Error(err)
-		}
-		if _, _, err := generateTableSchemaCode(ctx, table); err != nil {
-			t.Error(err)
-		}
-	}
-}
 
-func Test_generateTableSchemaCode_NG_1(t *testing.T) {
-	var (
-		ctx     = context.Background()
-		ngTable = &bigquery.Table{
-			ProjectID: testProjectNotFound,
-			DatasetID: testDatasetNotFound,
-			TableID:   testEmptyString,
-		}
-	)
-	if _, _, err := generateTableSchemaCode(ctx, ngTable); err == nil {
-		t.Error(err)
-	}
-}
+		var (
+			ngClient, _     = bigquery.NewClient(ctx, testPublicDataProjectID)
+			ngTableIterator = ngClient.Dataset(testSupportedDatasetID).Tables(ctx)
+		)
 
-func Test_generateTableSchemaCode_NG_2(t *testing.T) {
-	var (
-		ctx = context.Background()
-	)
-
-	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-	}
-
-	var (
-		ngClient, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
-		ngTable, _  = ngClient.Dataset(testNotSupportedDatasetID).Tables(ctx).Next()
-	)
-
-	ngTable.ProjectID = testProjectNotFound
-	if _, _, err := generateTableSchemaCode(ctx, ngTable); err == nil {
-		t.Error(err)
-	}
-}
-
-func Test_generateTableSchemaCode_NG_3(t *testing.T) {
-	var (
-		ctx = context.Background()
-	)
-
-	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-	}
-
-	var (
-		ngClient, _     = bigquery.NewClient(ctx, testPublicDataProjectID)
-		ngTableIterator = ngClient.Dataset(testNotSupportedDatasetID).Tables(ctx)
-	)
-
-	for {
-		table, err := ngTableIterator.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			t.Error(err)
-		}
-		if _, _, err := generateTableSchemaCode(ctx, table); err != nil {
-			// NOTE(djeeno): "bigquery.FieldType not supported." 以外のエラーが出たら Fail
-			if !strings.Contains(err.Error(), testSubStrFieldTypeNotSupported) {
+		for {
+			table, err := ngTableIterator.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
 				t.Error(err)
 			}
-			// NOTE(djeeno): ここまで来たら、確認したいことは確認済み。
-			// ref. https://github.com/djeeno/bqtableschema/blob/260524ce0ae2dd5bdcbdd57446cdd8c140326ca4/main.go#L212
-			return
+			if _, _, err := generateTableSchemaCode(ctx, table); err != nil {
+				t.Error(err)
+			}
 		}
-	}
-}
+	})
 
-func Test_getAllTables_OK(t *testing.T) {
-	if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-		t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
-	}
-
-	var (
-		ctx         = context.Background()
-		okClient, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
-	)
-
-	if _, err := getAllTables(ctx, okClient, testSupportedDatasetID); err != nil {
-		t.Error(err)
-	}
-}
-
-func Test_getAllTables_NG(t *testing.T) {
-	backupValue, exist := os.LookupEnv(envNameGoogleApplicationCredentials)
-	_ = os.Setenv(envNameGoogleApplicationCredentials, testGoogleApplicationCredentials)
-	defer func() {
-		if exist {
-			_ = os.Setenv(envNameGoogleApplicationCredentials, backupValue)
-			return
+	t.Run("異常系_testProjectNotFound_testDatasetNotFound", func(t *testing.T) {
+		var (
+			ctx     = context.Background()
+			ngTable = &bigquery.Table{
+				ProjectID: testProjectNotFound,
+				DatasetID: testDatasetNotFound,
+				TableID:   testEmptyString,
+			}
+		)
+		if _, _, err := generateTableSchemaCode(ctx, ngTable); err == nil {
+			t.Error(err)
 		}
-		_ = os.Unsetenv(envNameGoogleApplicationCredentials)
-	}()
+	})
 
-	var (
-		ctx         = context.Background()
-		ngClient, _ = bigquery.NewClient(ctx, testProjectNotFound)
-	)
+	t.Run("異常系_testProjectNotFound_testNotSupportedDatasetID", func(t *testing.T) {
+		var (
+			ctx = context.Background()
+		)
 
-	if _, err := getAllTables(ctx, ngClient, testDatasetNotFound); err == nil {
-		t.Error(err)
-	}
+		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		}
+
+		var (
+			ngClient, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
+			ngTable, _  = ngClient.Dataset(testNotSupportedDatasetID).Tables(ctx).Next()
+		)
+
+		ngTable.ProjectID = testProjectNotFound
+		if _, _, err := generateTableSchemaCode(ctx, ngTable); err == nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("異常系_testPublicDataProjectID_testNotSupportedDatasetID_testSubStrFieldTypeNotSupported", func(t *testing.T) {
+		var (
+			ctx = context.Background()
+		)
+
+		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		}
+
+		var (
+			ngClient, _     = bigquery.NewClient(ctx, testPublicDataProjectID)
+			ngTableIterator = ngClient.Dataset(testNotSupportedDatasetID).Tables(ctx)
+		)
+
+		for {
+			table, err := ngTableIterator.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				t.Error(err)
+			}
+			if _, _, err := generateTableSchemaCode(ctx, table); err != nil {
+				// NOTE(djeeno): "bigquery.FieldType not supported." 以外のエラーが出たら Fail
+				if !strings.Contains(err.Error(), testSubStrFieldTypeNotSupported) {
+					t.Error(err)
+				}
+				// NOTE(djeeno): ここまで来たら、確認したいことは確認済み。
+				// ref. https://github.com/djeeno/bqtableschema/blob/260524ce0ae2dd5bdcbdd57446cdd8c140326ca4/main.go#L212
+				return
+			}
+		}
+	})
 }
 
-func Test_readFile_OK(t *testing.T) {
-	if _, err := readFile(testProbablyExistsPath); err != nil {
-		t.Error(err)
-	}
+func Test_getAllTables(t *testing.T) {
+	t.Run("正常系_testPublicDataProjectID_testSupportedDatasetID", func(t *testing.T) {
+
+		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
+			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		}
+
+		var (
+			ctx         = context.Background()
+			okClient, _ = bigquery.NewClient(ctx, testPublicDataProjectID)
+		)
+
+		if _, err := getAllTables(ctx, okClient, testSupportedDatasetID); err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("異常系_testProjectNotFound_testDatasetNotFound", func(t *testing.T) {
+
+		backupValue, exist := os.LookupEnv(envNameGoogleApplicationCredentials)
+		_ = os.Setenv(envNameGoogleApplicationCredentials, testGoogleApplicationCredentials)
+		defer func() {
+			if exist {
+				_ = os.Setenv(envNameGoogleApplicationCredentials, backupValue)
+				return
+			}
+			_ = os.Unsetenv(envNameGoogleApplicationCredentials)
+		}()
+
+		var (
+			ctx         = context.Background()
+			ngClient, _ = bigquery.NewClient(ctx, testProjectNotFound)
+		)
+
+		if _, err := getAllTables(ctx, ngClient, testDatasetNotFound); err == nil {
+			t.Error(err)
+		}
+	})
 }
 
-func Test_readFile_NG_1(t *testing.T) {
-	if _, err := readFile(testErrNoSuchFileOrDirectoryPath); err == nil {
-		t.Error(err)
-	}
+func Test_readFile(t *testing.T) {
+	t.Run("正常系_testProbablyExistsPath", func(t *testing.T) {
+		if _, err := readFile(testProbablyExistsPath); err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("異常系_testErrNoSuchFileOrDirectoryPath", func(t *testing.T) {
+		if _, err := readFile(testErrNoSuchFileOrDirectoryPath); err == nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("異常系_testErrIsADirectoryPath", func(t *testing.T) {
+		if _, err := readFile(testErrIsADirectoryPath); err == nil {
+			t.Error(err)
+		}
+	})
 }
 
-func Test_readFile_NG_2(t *testing.T) {
-	if _, err := readFile(testErrIsADirectoryPath); err == nil {
-		t.Error(err)
-	}
-}
+func Test_getOptOrEnvOrDefault(t *testing.T) {
+	t.Run("正常系_testOptValue", func(t *testing.T) {
+		v, err := getOptOrEnvOrDefault(testOptName, testOptValue, testEnvName, testDefaultValue)
+		if err != nil {
+			t.Error(err)
+		}
+		if v != testOptValue {
+			t.Error(err)
+		}
+	})
 
-func Test_getOptOrEnvOrDefault_OK_1(t *testing.T) {
-	v, err := getOptOrEnvOrDefault(testOptName, testOptValue, testEnvName, testDefaultValue)
-	if err != nil {
-		t.Error(err)
-	}
-	if v != testOptValue {
-		t.Error(err)
-	}
-}
-func Test_getOptOrEnvOrDefault_OK_2(t *testing.T) {
-	if err := os.Setenv(testEnvName, testEnvValue); err != nil {
-		t.Error(err)
-	}
-	v, err := getOptOrEnvOrDefault(testOptName, testEmptyString, testEnvName, testDefaultValue)
-	if err != nil {
-		t.Error(err)
-	}
-	if v != testEnvValue {
-		t.Error(err)
-	}
-	if err := os.Unsetenv(testEnvName); err != nil {
-		t.Error(err)
-	}
+	t.Run("正常系_testEnvValue", func(t *testing.T) {
+		if err := os.Setenv(testEnvName, testEnvValue); err != nil {
+			t.Error(err)
+		}
+		v, err := getOptOrEnvOrDefault(testOptName, testEmptyString, testEnvName, testDefaultValue)
+		if err != nil {
+			t.Error(err)
+		}
+		if v != testEnvValue {
+			t.Error(err)
+		}
+		if err := os.Unsetenv(testEnvName); err != nil {
+			t.Error(err)
+		}
+	})
 
-}
+	t.Run("正常系_testDefaultValue", func(t *testing.T) {
+		v, err := getOptOrEnvOrDefault(testOptName, testEmptyString, testEnvName, testDefaultValue)
+		if err != nil {
+			t.Error(err)
+		}
+		if v != testDefaultValue {
+			t.Error(err)
+		}
+	})
 
-func Test_getOptOrEnvOrDefault_OK_3(t *testing.T) {
-	v, err := getOptOrEnvOrDefault(testOptName, testEmptyString, testEnvName, testDefaultValue)
-	if err != nil {
-		t.Error(err)
-	}
-	if v != testDefaultValue {
-		t.Error(err)
-	}
-}
+	t.Run("異常系_testEmptyString_all", func(t *testing.T) {
+		v, err := getOptOrEnvOrDefault(testEmptyString, testEmptyString, testEmptyString, testEmptyString)
+		if err == nil {
+			t.Error(err)
+		}
+		if v != testEmptyString {
+			t.Error(err)
+		}
+	})
 
-func Test_getOptOrEnvOrDefault_NG_1(t *testing.T) {
-	v, err := getOptOrEnvOrDefault(testEmptyString, testEmptyString, testEmptyString, testEmptyString)
-	if err == nil {
-		t.Error(err)
-	}
-	if v != testEmptyString {
-		t.Error(err)
-	}
-}
-
-func Test_getOptOrEnvOrDefault_NG_2(t *testing.T) {
-	v, err := getOptOrEnvOrDefault(testOptName, testEmptyString, testEnvName, testEmptyString)
-	if err == nil {
-		t.Error(err)
-	}
-	if v != testEmptyString {
-		t.Error(err)
-	}
+	t.Run("異常系_testEmptyString", func(t *testing.T) {
+		v, err := getOptOrEnvOrDefault(testOptName, testEmptyString, testEnvName, testEmptyString)
+		if err == nil {
+			t.Error(err)
+		}
+		if v != testEmptyString {
+			t.Error(err)
+		}
+	})
 }
 
 func Test_capitalizeInitial(t *testing.T) {
-	if capitalizeInitial(testEmptyString) != testEmptyString {
-		t.Error()
-	}
+	t.Run("正常系_testEmptyString", func(t *testing.T) {
+		if capitalizeInitial(testEmptyString) != testEmptyString {
+			t.Error()
+		}
+	})
 
-	if capitalizeInitial(testNotCapitalized) != testCapitalized {
-		t.Error()
-	}
+	t.Run("正常系_testCapitalized", func(t *testing.T) {
+		if capitalizeInitial(testNotCapitalized) != testCapitalized {
+			t.Error()
+		}
+	})
 }
 
 func Test_infoln(t *testing.T) {
@@ -435,23 +464,27 @@ func Test_bigqueryFieldTypeToGoType(t *testing.T) {
 		}
 	)
 
-	for bigqueryFieldType, typeOf := range supportedBigqueryFieldTypes {
-		goType, _, err := bigqueryFieldTypeToGoType(bigqueryFieldType)
-		if err != nil {
-			t.Error(err)
+	t.Run("正常系_supportedBigqueryFieldTypes", func(t *testing.T) {
+		for bigqueryFieldType, typeOf := range supportedBigqueryFieldTypes {
+			goType, _, err := bigqueryFieldTypeToGoType(bigqueryFieldType)
+			if err != nil {
+				t.Error(err)
+			}
+			if goType != typeOf {
+				t.Error()
+			}
 		}
-		if goType != typeOf {
-			t.Error()
-		}
-	}
+	})
 
-	for bigqueryFieldType, typeOf := range unsupportedBigqueryFieldTypes {
-		goType, _, err := bigqueryFieldTypeToGoType(bigqueryFieldType)
-		if err == nil {
-			t.Error(err)
+	t.Run("異常系_unsupportedBigqueryFieldTypes", func(t *testing.T) {
+		for bigqueryFieldType, typeOf := range unsupportedBigqueryFieldTypes {
+			goType, _, err := bigqueryFieldTypeToGoType(bigqueryFieldType)
+			if err == nil {
+				t.Error(err)
+			}
+			if goType != typeOf {
+				t.Error()
+			}
 		}
-		if goType != typeOf {
-			t.Error()
-		}
-	}
+	})
 }
