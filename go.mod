@@ -1,4 +1,4 @@
-module github.com/djeeno/bqtableschema
+module github.com/djeeno/bqschema-gen-go
 
 go 1.15
 

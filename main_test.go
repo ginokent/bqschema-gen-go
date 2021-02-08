@@ -270,7 +270,7 @@ func Test_generateTableSchemaCode(t *testing.T) {
 					t.Error(err)
 				}
 				// NOTE(djeeno): ここまで来たら、確認したいことは確認済み。
-				// ref. https://github.com/djeeno/bqtableschema/blob/260524ce0ae2dd5bdcbdd57446cdd8c140326ca4/main.go#L212
+				// ref. https://github.com/djeeno/bqschema-gen-go/blob/260524ce0ae2dd5bdcbdd57446cdd8c140326ca4/main.go#L212
 				return
 			}
 		}
