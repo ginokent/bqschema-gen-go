@@ -1,4 +1,4 @@
-COMMAND_NAME  := bqtableschema
+COMMAND_NAME  := bqschema-gen
 COMMIT_HASH   := $(shell git rev-parse HEAD)
 ROOT_DIR      := $(shell git rev-parse --show-toplevel)
 MAIN_DIR      := ${ROOT_DIR}
