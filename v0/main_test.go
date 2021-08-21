@@ -317,26 +317,6 @@ func Test_getAllTables(t *testing.T) {
 	})
 }
 
-func Test_readFile(t *testing.T) {
-	t.Run("正常系_testProbablyExistsPath", func(t *testing.T) {
-		if _, err := readFile(testProbablyExistsPath); err != nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("異常系_testErrNoSuchFileOrDirectoryPath", func(t *testing.T) {
-		if _, err := readFile(testErrNoSuchFileOrDirectoryPath); err == nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("異常系_testErrIsADirectoryPath", func(t *testing.T) {
-		if _, err := readFile(testErrIsADirectoryPath); err == nil {
-			t.Error(err)
-		}
-	})
-}
-
 func Test_getOptOrEnvOrDefault(t *testing.T) {
 	t.Run("正常系_testOptValue", func(t *testing.T) {
 		v, err := getOptOrEnvOrDefault(testOptName, testOptValue, testEnvName, testDefaultValue)
