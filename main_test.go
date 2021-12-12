@@ -265,12 +265,12 @@ func Test_generateTableSchemaCode(t *testing.T) {
 				t.Error(err)
 			}
 			if _, _, err := generateTableSchemaCode(ctx, table); err != nil {
-				// NOTE(djeeno): "bigquery.FieldType not supported." 以外のエラーが出たら Fail
+				// NOTE(newtstat): "bigquery.FieldType not supported." 以外のエラーが出たら Fail
 				if !strings.Contains(err.Error(), testSubStrFieldTypeNotSupported) {
 					t.Error(err)
 				}
-				// NOTE(djeeno): ここまで来たら、確認したいことは確認済み。
-				// ref. https://github.com/djeeno/bqschema-gen-go/blob/260524ce0ae2dd5bdcbdd57446cdd8c140326ca4/main.go#L212
+				// NOTE(newtstat): ここまで来たら、確認したいことは確認済み。
+				// ref. https://github.com/newtstat/bqschema-gen-go/blob/260524ce0ae2dd5bdcbdd57446cdd8c140326ca4/main.go#L212
 				return
 			}
 		}
@@ -449,7 +449,7 @@ func Test_bigqueryFieldTypeToGoType(t *testing.T) {
 			bigquery.FloatFieldType:     reflect.Float64.String(),
 			bigquery.BooleanFieldType:   reflect.Bool.String(),
 			bigquery.TimestampFieldType: typeOfGoTime.String(),
-			// TODO(djeeno): support bigquery.RecordFieldType
+			// TODO(newtstat): support bigquery.RecordFieldType
 			//bigquery.RecordFieldType: "",
 			bigquery.DateFieldType:      typeOfDate.String(),
 			bigquery.TimeFieldType:      typeOfTime.String(),

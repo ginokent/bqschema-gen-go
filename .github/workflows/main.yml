@@ -1,7 +1,7 @@
 name: main
 
 on:
-  # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#workflow_dispatch
+  # NOTE(newtstat): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#workflow_dispatch
   workflow_dispatch:
     inputs: {}
   push:
@@ -10,24 +10,24 @@ on:
   pull_request:
     branches:
       - main
-  # NOTE(djeeno): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#schedule
+  # NOTE(newtstat): ref. https://docs.github.com/actions/reference/events-that-trigger-workflows#schedule
   schedule:
     - cron: '0 9 * * *'
 
 jobs:
   ci:
     name: CI
-    # NOTE(djeeno): https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+    # NOTE(newtstat): https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
-      # NOTE(djeeno): https://github.com/actions/setup-go#usage
+      # NOTE(newtstat): https://github.com/actions/setup-go#usage
       - uses: actions/setup-go@v2
         with:
           go-version: ^1.15
 
-      # NOTE(djeeno): https://github.com/actions/cache/blob/main/examples.md#go---modules
+      # NOTE(newtstat): https://github.com/actions/cache/blob/main/examples.md#go---modules
       - uses: actions/cache@v2
         with:
           path: |
@@ -37,7 +37,7 @@ jobs:
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
             ${{ runner.os }}-go-
 
-      # NOTE(djeeno): https://github.com/actions/cache#skipping-steps-based-on-cache-hit
+      # NOTE(newtstat): https://github.com/actions/cache#skipping-steps-based-on-cache-hit
       - name: Run go mod tidy (if not cache hit)
         env:
           GO111MODULE: auto
@@ -46,12 +46,12 @@ jobs:
           git diff --exit-code go.mod
           git diff --exit-code go.sum
 
-      # NOTE(djeeno): https://github.com/google-github-actions/setup-gcloud#usage
+      # NOTE(newtstat): https://github.com/google-github-actions/setup-gcloud#usage
       - uses: google-github-actions/setup-gcloud@v0.2.0
         with:
-          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}                        ## NOTE(djeeno): JSON の中の project_id に相当。 GitHub Actions のログに出ないようにするため
-          service_account_email: ${{ secrets.GCLOUD_SERVICE_ACCOUNT_EMAIL }}  ## NOTE(djeeno): JSON の中の client_email に相当。 GitHub Actions のログに出ないようにするため
-          service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}  ## NOTE(djeeno): JSON の中身すべてに相当。
+          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}                        ## NOTE(newtstat): JSON の中の project_id に相当。 GitHub Actions のログに出ないようにするため
+          service_account_email: ${{ secrets.GCLOUD_SERVICE_ACCOUNT_EMAIL }}  ## NOTE(newtstat): JSON の中の client_email に相当。 GitHub Actions のログに出ないようにするため
+          service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}  ## NOTE(newtstat): JSON の中身すべてに相当。
           export_default_credentials: true
 
       - name: Run make ci
@@ -60,13 +60,13 @@ jobs:
         run: |
           make ci
 
-      # NOTE(djeeno): https://github.com/actions/upload-artifact#usage
+      # NOTE(newtstat): https://github.com/actions/upload-artifact#usage
       #- uses: actions/upload-artifact@v2
       #  with:
       #    name: coverage.html
       #    path: ./coverage.html
 
-      # NOTE(djeeno): https://github.com/codecov/codecov-action#example-workflowyml-with-codecov-action
+      # NOTE(newtstat): https://github.com/codecov/codecov-action#example-workflowyml-with-codecov-action
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
