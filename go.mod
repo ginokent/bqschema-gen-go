@@ -1,4 +1,4 @@
-module github.com/djeeno/bqschema-gen-go
+module github.com/newtstat/bqschema-gen-go
 
 go 1.15
 
