@@ -13,7 +13,8 @@ import (
 
 const (
 	// all
-	testEmptyString = ""
+	testEmptyString                = ""
+	GOOGLE_APPLICATION_CREDENTIALS = "GOOGLE_APPLICATION_CREDENTIALS"
 
 	// generateTableSchemaCode, getAllTables
 	testPublicDataProjectID         = "bigquery-public-data"
@@ -48,8 +49,8 @@ const (
 
 func Test_Run(t *testing.T) {
 	t.Run("正常系_testPublicDataProjectID_"+testPublicDataProjectID+"_testSupportedDatasetID_"+testSupportedDatasetID, func(t *testing.T) {
-		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		if os.Getenv(GOOGLE_APPLICATION_CREDENTIALS) == "" {
+			t.Skip("WARN: " + GOOGLE_APPLICATION_CREDENTIALS + " is not set")
 		}
 
 		// projectID
@@ -85,8 +86,8 @@ func Test_Run(t *testing.T) {
 
 func Test_Generate(t *testing.T) {
 	t.Run("正常系_testSupportedDatasetID_"+testSupportedDatasetID, func(t *testing.T) {
-		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		if os.Getenv(GOOGLE_APPLICATION_CREDENTIALS) == "" {
+			t.Skip("WARN: " + GOOGLE_APPLICATION_CREDENTIALS + " is not set")
 		}
 
 		var (
@@ -101,8 +102,8 @@ func Test_Generate(t *testing.T) {
 	})
 
 	t.Run("正常系_testNotSupportedDatasetID_"+testNotSupportedDatasetID, func(t *testing.T) {
-		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		if os.Getenv(GOOGLE_APPLICATION_CREDENTIALS) == "" {
+			t.Skip("WARN: " + GOOGLE_APPLICATION_CREDENTIALS + " is not set")
 		}
 
 		var (
@@ -185,8 +186,8 @@ func Test_generateTableSchemaCode(t *testing.T) {
 			ctx = context.Background()
 		)
 
-		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		if os.Getenv(GOOGLE_APPLICATION_CREDENTIALS) == "" {
+			t.Skip("WARN: " + GOOGLE_APPLICATION_CREDENTIALS + " is not set")
 		}
 
 		var (
@@ -227,8 +228,8 @@ func Test_generateTableSchemaCode(t *testing.T) {
 			ctx = context.Background()
 		)
 
-		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		if os.Getenv(GOOGLE_APPLICATION_CREDENTIALS) == "" {
+			t.Skip("WARN: " + GOOGLE_APPLICATION_CREDENTIALS + " is not set")
 		}
 
 		var (
@@ -247,8 +248,8 @@ func Test_generateTableSchemaCode(t *testing.T) {
 			ctx = context.Background()
 		)
 
-		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		if os.Getenv(GOOGLE_APPLICATION_CREDENTIALS) == "" {
+			t.Skip("WARN: " + GOOGLE_APPLICATION_CREDENTIALS + " is not set")
 		}
 
 		var (
@@ -280,8 +281,8 @@ func Test_generateTableSchemaCode(t *testing.T) {
 func Test_getAllTables(t *testing.T) {
 	t.Run("正常系_testPublicDataProjectID_testSupportedDatasetID", func(t *testing.T) {
 
-		if os.Getenv(envNameGoogleApplicationCredentials) == "" {
-			t.Skip("WARN: " + envNameGoogleApplicationCredentials + " is not set")
+		if os.Getenv(GOOGLE_APPLICATION_CREDENTIALS) == "" {
+			t.Skip("WARN: " + GOOGLE_APPLICATION_CREDENTIALS + " is not set")
 		}
 
 		var (
@@ -296,14 +297,14 @@ func Test_getAllTables(t *testing.T) {
 
 	t.Run("異常系_testProjectNotFound_testDatasetNotFound", func(t *testing.T) {
 
-		backupValue, exist := os.LookupEnv(envNameGoogleApplicationCredentials)
-		_ = os.Setenv(envNameGoogleApplicationCredentials, testGoogleApplicationCredentials)
+		backupValue, exist := os.LookupEnv(GOOGLE_APPLICATION_CREDENTIALS)
+		_ = os.Setenv(GOOGLE_APPLICATION_CREDENTIALS, testGoogleApplicationCredentials)
 		defer func() {
 			if exist {
-				_ = os.Setenv(envNameGoogleApplicationCredentials, backupValue)
+				_ = os.Setenv(GOOGLE_APPLICATION_CREDENTIALS, backupValue)
 				return
 			}
-			_ = os.Unsetenv(envNameGoogleApplicationCredentials)
+			_ = os.Unsetenv(GOOGLE_APPLICATION_CREDENTIALS)
 		}()
 
 		var (
