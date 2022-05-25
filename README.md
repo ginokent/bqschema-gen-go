@@ -16,14 +16,14 @@ cd /path/to/your/golang-project-repository
 mkdir -p bqschema
 cd bqschema
 
-# Set the required environment variables.
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/serviceaccount/keyfile.json
 # Set GCP Project ID ref. https://console.cloud.google.com/bigquery?p=bigquery-public-data&page=project
 export GCLOUD_PROJECT_ID=bigquery-public-data
 # Set BigQuery Dataset name ref. https://console.cloud.google.com/bigquery?p=bigquery-public-data&d=hacker_news&page=dataset
 export BIGQUERY_DATASET=hacker_news
 # Set output file
 export OUTPUT_FILE=bqschema.generated.go
+# (Option) Set the required environment variables.
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/serviceaccount/keyfile.json
 
 # generate
 go run github.com/newtstat/bqschema-gen-go
