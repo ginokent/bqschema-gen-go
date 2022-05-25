@@ -25,13 +25,11 @@ const (
 	// optName
 	optNameProjectID  = "project"
 	optNameDataset    = "dataset"
-	optNameKeyFile    = "keyfile"
 	optNameOutputFile = "output"
 	// envName
-	envNameGoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
-	envNameGCloudProjectID              = "GCLOUD_PROJECT_ID"
-	envNameBigQueryDataset              = "BIGQUERY_DATASET"
-	envNameOutputFile                   = "OUTPUT_FILE"
+	envNameGCloudProjectID = "GCLOUD_PROJECT_ID"
+	envNameBigQueryDataset = "BIGQUERY_DATASET"
+	envNameOutputFile      = "OUTPUT_FILE"
 	// defaultValue
 	defaultValueEmpty      = ""
 	defaultValueOutputFile = "bqschema.generated.go"
@@ -41,7 +39,6 @@ var (
 	// optValue
 	optValueProjectID  = flag.String(optNameProjectID, defaultValueEmpty, "")
 	optValueDataset    = flag.String(optNameDataset, defaultValueEmpty, "")
-	optValueKeyFile    = flag.String(optNameKeyFile, defaultValueEmpty, "path to service account json key file")
 	optValueOutputPath = flag.String(optNameOutputFile, defaultValueEmpty, "path to output the generated code")
 )
 
@@ -59,12 +56,6 @@ func main() {
 // It is separated from the `main` function because of addressing an issue where` defer` is not executed when `os.Exit` is executed.
 func Run(ctx context.Context) (err error) {
 	flag.Parse()
-
-	var keyfile string
-	keyfile, err = getOptOrEnvOrDefault(optNameKeyFile, *optValueKeyFile, envNameGoogleApplicationCredentials, "")
-	if err != nil {
-		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
-	}
 
 	var project string
 	project, err = getOptOrEnvOrDefault(optNameProjectID, *optValueProjectID, envNameGCloudProjectID, "")
@@ -84,20 +75,13 @@ func Run(ctx context.Context) (err error) {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
-	// set GOOGLE_APPLICATION_CREDENTIALS for Google Cloud SDK
-	if os.Getenv(envNameGoogleApplicationCredentials) != keyfile {
-		if err = os.Setenv(envNameGoogleApplicationCredentials, keyfile); err != nil {
-			return fmt.Errorf("os.Setenv: %w", err)
-		}
-	}
-
 	client, err := bigquery.NewClient(ctx, project)
 	if err != nil {
 		return fmt.Errorf("bigquery.NewClient: %w", err)
 	}
 	defer func() {
-		if err = client.Close(); err != nil {
-			warnln("client.Close: " + err.Error())
+		if closeErr := client.Close(); closeErr != nil {
+			warnln("client.Close: " + closeErr.Error())
 		}
 	}()
 
