@@ -210,10 +210,18 @@ func generateImportPackagesCode(importPackages []string) (generatedCode string) 
 }
 
 func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (generatedCode string, importPackages []string, err error) {
-	if len(table.TableID) == 0 {
+	tableID := table.TableID
+	if len(tableID) == 0 {
 		return "", nil, fmt.Errorf("*bigquery.Table.TableID is empty. *bigquery.Table struct dump: %#v", table)
 	}
-	structName := capitalizeInitial(table.TableID)
+
+	if strings.Contains(tableID, "-") {
+		replaced := strings.ReplaceAll(tableID, "-", "_")
+		warnln(fmt.Sprintf("tableID `%s` contains invalid character `-`. replacing `%s` to `%s`", tableID, tableID, replaced))
+		tableID = replaced
+	}
+
+	structName := capitalizeInitial(tableID)
 
 	var md *bigquery.TableMetadata
 	md, err = table.Metadata(ctx)
