@@ -240,7 +240,7 @@ func generateTableSchemaCode(ctx context.Context, table *bigquery.Table) (genera
 		var goTypeStr, pkg string
 		goTypeStr, pkg, err = bigqueryFieldTypeToGoType(schema.Type)
 		if err != nil {
-			return "", nil, fmt.Errorf("bigqueryFieldTypeToGoType: %w", err)
+			return "", nil, fmt.Errorf("bigqueryFieldTypeToGoType: tableID=%s, %w", tableID, err)
 		}
 		if pkg != "" {
 			importPackages = append(importPackages, pkg)
