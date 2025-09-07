@@ -28,11 +28,16 @@ const (
 	optNameDataset    = "dataset"
 	optNameOutputFile = "output"
 	optNameDebug      = "debug"
+	// custom mapping options
+	optNameTimestampType    = "timestamp-type"
+	optNameTimestampImports = "timestamp-imports"
 	// envName
-	envNameGCloudProjectID = "GCLOUD_PROJECT_ID"
-	envNameBigQueryDataset = "BIGQUERY_DATASET"
-	envNameOutputFile      = "OUTPUT_FILE"
-	envNameDebug           = "DEBUG"
+	envNameGCloudProjectID  = "GCLOUD_PROJECT_ID"
+	envNameBigQueryDataset  = "BIGQUERY_DATASET"
+	envNameOutputFile       = "OUTPUT_FILE"
+	envNameDebug            = "DEBUG"
+	envNameTimestampType    = "TIMESTAMP_TYPE"
+	envNameTimestampImports = "TIMESTAMP_IMPORTS"
 	// defaultValue
 	defaultValueEmpty      = ""
 	defaultValueOutputFile = "bqschema.generated.go"
@@ -41,9 +46,17 @@ const (
 
 var (
 	// optValue
-	optValueProjectID  = flag.String(optNameProjectID, defaultValueEmpty, "")
-	optValueDataset    = flag.String(optNameDataset, defaultValueEmpty, "")
-	optValueOutputPath = flag.String(optNameOutputFile, defaultValueEmpty, "path to output the generated code")
+	optValueProjectID        = flag.String(optNameProjectID, defaultValueEmpty, "")
+	optValueDataset          = flag.String(optNameDataset, defaultValueEmpty, "")
+	optValueOutputPath       = flag.String(optNameOutputFile, defaultValueEmpty, "path to output the generated code")
+	optValueTimestampType    = flag.String(optNameTimestampType, defaultValueEmpty, "override Go type for BigQuery TIMESTAMP (e.g. 'time.Time' or 'mypkg.T')")
+	optValueTimestampImports = flag.String(optNameTimestampImports, defaultValueEmpty, "comma-separated import paths to add when overriding TIMESTAMP (e.g. 'time' or 'github.com/org/mypkg')")
+)
+
+// Global overrides configured via CLI/env
+var (
+	overrideTimestampType    string
+	overrideTimestampImports []string
 )
 
 func main() {
@@ -62,29 +75,53 @@ func Run(ctx context.Context) (err error) {
 	flag.Parse()
 
 	var project string
-	project, err = getOptOrEnvOrDefault(optNameProjectID, *optValueProjectID, envNameGCloudProjectID, "")
+	project, err = getOptOrEnvOrDefault(optNameProjectID, *optValueProjectID, envNameGCloudProjectID, "", false)
 	if err != nil {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
 	var dataset string
-	dataset, err = getOptOrEnvOrDefault(optNameDataset, *optValueDataset, envNameBigQueryDataset, "")
+	dataset, err = getOptOrEnvOrDefault(optNameDataset, *optValueDataset, envNameBigQueryDataset, "", false)
 	if err != nil {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
 	var filePath string
-	filePath, err = getOptOrEnvOrDefault(optNameOutputFile, *optValueOutputPath, envNameOutputFile, defaultValueOutputFile)
+	filePath, err = getOptOrEnvOrDefault(optNameOutputFile, *optValueOutputPath, envNameOutputFile, defaultValueOutputFile, false)
 	if err != nil {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 
 	var debugString string
-	debugString, err = getOptOrEnvOrDefault(optNameDebug, *optValueOutputPath, envNameDebug, defaultValueDebug)
+	debugString, err = getOptOrEnvOrDefault(optNameDebug, *optValueOutputPath, envNameDebug, defaultValueDebug, false)
 	if err != nil {
 		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
 	}
 	debug, _ := strconv.ParseBool(debugString)
+
+	var timestampTypeOverride string
+	timestampTypeOverride, err = getOptOrEnvOrDefault(optNameTimestampType, *optValueTimestampType, envNameTimestampType, defaultValueEmpty, true)
+	if err != nil {
+		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
+	}
+
+	var timestampImportsCSV string
+	timestampImportsCSV, err = getOptOrEnvOrDefault(optNameTimestampImports, *optValueTimestampImports, envNameTimestampImports, defaultValueEmpty, true)
+	if err != nil {
+		return fmt.Errorf("getOptOrEnvOrDefault: %w", err)
+	}
+
+	// set global overrides for use during generation
+	overrideTimestampType = strings.TrimSpace(timestampTypeOverride)
+	overrideTimestampImports = nil
+	if strings.TrimSpace(timestampImportsCSV) != "" {
+		for _, p := range strings.Split(timestampImportsCSV, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				overrideTimestampImports = append(overrideTimestampImports, p)
+			}
+		}
+	}
 
 	client, err := bigquery.NewClient(ctx, project)
 	if err != nil {
@@ -139,6 +176,11 @@ package bqschema
 			importPackages = append(importPackages, pkgs...)
 		}
 		tail = tail + structCode
+	}
+
+	// append user-specified imports for TIMESTAMP override (if any)
+	if overrideTimestampType != "" && len(overrideTimestampImports) > 0 {
+		importPackages = append(importPackages, overrideTimestampImports...)
 	}
 
 	importCode := generateImportPackagesCode(importPackages)
@@ -284,7 +326,7 @@ func readFile(path string) (content []byte, err error) {
 	return bytea, nil
 }
 
-func getOptOrEnvOrDefault(optName, optValue, envName, defaultValue string) (value string, err error) {
+func getOptOrEnvOrDefault(optName, optValue, envName, defaultValue string, allowEmptyValue bool) (value string, err error) {
 	if optName == "" {
 		return "", fmt.Errorf("optName is empty")
 	}
@@ -303,6 +345,10 @@ func getOptOrEnvOrDefault(optName, optValue, envName, defaultValue string) (valu
 	if defaultValue != "" {
 		infoln("use default option value: -" + optName + "=" + defaultValue)
 		return defaultValue, nil
+	}
+
+	if allowEmptyValue {
+		return "", nil
 	}
 
 	return "", fmt.Errorf("set option -%s, or set environment variable %s", optName, envName)
@@ -360,6 +406,10 @@ func bigqueryFieldTypeToGoType(bigqueryFieldType bigquery.FieldType) (goType str
 	case bigquery.DateTimeFieldType:
 		return typeOfDateTime.String(), typeOfDateTime.PkgPath(), nil
 	case bigquery.TimestampFieldType:
+		if overrideTimestampType != "" {
+			// When overriding, we don't automatically return a package path; imports are handled separately.
+			return overrideTimestampType, "", nil
+		}
 		return typeOfGoTime.String(), typeOfGoTime.PkgPath(), nil
 	case bigquery.NumericFieldType:
 		// NOTE(ginokent): The *T (pointer type) does not return the package path.
